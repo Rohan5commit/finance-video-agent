@@ -75,7 +75,7 @@ export function mergeAudioFiles(audioFiles) {
 
   console.log('Merging audio files with ffmpeg...');
   try {
-    execSync(`ffmpeg -f concat -safe 0 -i "${listPath}" -c copy "${mergedPath}" -y 2>&1`, {
+    execSync(`ffmpeg -f concat -safe 0 -i "${listPath}" -c:a libmp3lame -q:a 2 "${mergedPath}" -y`, {
       stdio: 'pipe',
       timeout: 30000
     });
@@ -97,7 +97,7 @@ export function mergeAudioWithVideo(videoPath, audioPath, outputPath) {
   console.log('Merging audio into video with ffmpeg...');
   try {
     execSync(
-      `ffmpeg -i "${videoPath}" -i "${audioPath}" -c:v copy -c:a aac -shortest -map 0:v:0 -map 1:a:0 "${outputPath}" -y 2>&1`,
+      `ffmpeg -i "${videoPath}" -i "${audioPath}" -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 "${outputPath}" -y`,
       { stdio: 'pipe', timeout: 60000 }
     );
     console.log(`Video with audio: ${outputPath}`);
