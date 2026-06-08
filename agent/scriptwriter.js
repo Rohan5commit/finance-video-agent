@@ -232,5 +232,73 @@ export async function generateScript(newsStories, marketData = null) {
     }
   }
 
+  // Check total word count — if too short, expand each scene individually
+  const totalWords = script.scenes.reduce((sum, s) => {
+    const words = (s.spokenText || '').split(/\s+/).filter(Boolean).length;
+    return sum + words;
+  }, 0);
+  console.log(`Initial script word count: ${totalWords}`);
+
+  const TARGET_WORDS = 1200;
+  if (totalWords < TARGET_WORDS * 0.75) {
+    console.log(`Script too short (${totalWords} words). Expanding each scene...`);
+
+    const sceneTargets = {
+      intro: { min: 120, max: 160 },
+      news: { min: 220, max: 280 },
+      explainer: { min: 280, max: 340 },
+      market: { min: 180, max: 220 },
+      outro: { min: 120, max: 160 }
+    };
+
+    for (const scene of script.scenes) {
+      const target = sceneTargets[scene.type] || sceneTargets.news;
+      const currentWords = (scene.spokenText || '').split(/\s+/).filter(Boolean).length;
+
+      if (currentWords < target.min) {
+        console.log(`  Expanding ${scene.id}: ${currentWords} → ${target.min}-${target.max} words`);
+        try {
+          const expandPrompt = `You are rewriting a single scene from a finance video narration. The current version is too short (${currentWords} words). Expand it to ${target.min}-${target.max} words while keeping the same topic, tone, and key facts.
+
+RULES:
+- Sound like a real human talking, not an AI
+- Use contractions (it's, don't, we're)
+- Use '...' for pauses before big numbers
+- Use blank lines between paragraphs for breathing room
+- Include specific numbers and data
+- Do NOT use filler phrases like "let's dive in" or "welcome back"
+- Keep the same topic/company/ticker as the original
+- Output ONLY the expanded spokenText as plain text, no JSON, no markdown`;
+
+          const expandUser = `Original scene (type: ${scene.type}, id: ${scene.id}${scene.ticker ? ', ticker: ' + scene.ticker : ''}):
+
+${scene.spokenText}
+
+Expand this to ${target.min}-${target.max} words. Keep the same story, same facts, same tone — just add more depth, context, analysis, and vivid detail.`;
+
+          const expanded = await callNVIDIA([
+            { role: 'system', content: expandPrompt },
+            { role: 'user', content: expandUser }
+          ], 0.8);
+
+          // Clean up any markdown wrapping
+          const cleaned = expanded.replace(/^```[\s\S]*?```$/gm, '').replace(/^"|"$/g, '').trim();
+          if (cleaned.length > 100) {
+            scene.spokenText = cleaned;
+            const newWords = cleaned.split(/\s+/).filter(Boolean).length;
+            console.log(`    ✓ ${scene.id}: now ${newWords} words`);
+          } else {
+            console.log(`    ⚠ ${scene.id}: expansion too short, keeping original`);
+          }
+        } catch (err) {
+          console.error(`    ✗ ${scene.id}: expansion failed:`, err.message);
+        }
+      }
+    }
+
+    const finalWords = script.scenes.reduce((sum, s) => sum + (s.spokenText || '').split(/\s+/).filter(Boolean).length, 0);
+    console.log(`Final script word count: ${finalWords}`);
+  }
+
   return script;
 }
