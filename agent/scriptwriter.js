@@ -184,22 +184,44 @@ export async function generateScript(newsStories, marketData = null) {
     throw err;
   }
 
-  let script;
-  try {
-    script = JSON.parse(raw);
-  } catch (parseErr) {
+  // Extract JSON from the LLM output (may include prose before/after)
+  function extractJSON(text) {
+    // Try direct parse first
+    try { return JSON.parse(text); } catch {}
+    // Strip markdown code fences
+    let cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    try { return JSON.parse(cleaned); } catch {}
+    // Find the first { and last } to extract the JSON object
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      const jsonStr = cleaned.slice(firstBrace, lastBrace + 1);
+      try { return JSON.parse(jsonStr); } catch {}
+      // Try fixing common JSON issues: trailing commas, unescaped newlines in strings
+      const fixed = jsonStr
+        .replace(/,\s*([}\]])/g, '$1')  // trailing commas
+        .replace(/\n/g, '\\n');           // literal newlines in strings
+      try { return JSON.parse(fixed); } catch {}
+    }
+    return null;
+  }
+
+  let script = extractJSON(raw);
+  if (!script) {
     console.log('First parse failed, retrying with stricter prompt...');
     try {
       const retryRaw = await callNVIDIA([
-        { role: 'system', content: finalPrompt + '\n\nCRITICAL: Output ONLY raw JSON. No markdown, no backticks, no explanations.' },
-        { role: 'user', content: userMessage }
+        { role: 'system', content: finalPrompt + '\n\nCRITICAL: Output ONLY raw JSON. No markdown, no backticks, no explanations, no prose. Start with { and end with }.' },
+        { role: 'user', content: userMessage + '\n\nOUTPUT ONLY THE JSON OBJECT. Start your response with { and end with }. Nothing else.' }
       ], 0.3);
-      const cleaned = retryRaw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      script = JSON.parse(cleaned);
+      script = extractJSON(retryRaw);
     } catch (retryErr) {
-      console.error('Retry failed. Raw output:', raw?.slice(0, 500));
-      throw new Error('Failed to parse LLM output as JSON after retry');
+      console.error('Retry API call failed:', retryErr.message);
     }
+  }
+  if (!script) {
+    console.error('Failed to parse LLM output as JSON. Raw output:', raw?.slice(0, 500));
+    throw new Error('Failed to parse LLM output as JSON after retry');
   }
 
   // Inject real market data into the market scene
