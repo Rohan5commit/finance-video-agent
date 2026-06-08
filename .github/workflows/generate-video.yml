@@ -24,6 +24,12 @@ jobs:
       - name: Install Chrome for Remotion
         uses: browser-actions/setup-chrome@v1
 
+      - name: Install ffmpeg for audio processing
+        run: sudo apt-get update -y && sudo apt-get install -y ffmpeg
+
+      - name: Install Python edge-tts for TTS narration
+        run: pip install --user edge-tts
+
       - name: Generate video
         env:
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
