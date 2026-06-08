@@ -1,11 +1,13 @@
 import { EdgeTTS } from 'node-edge-tts';
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const VOICE = 'en-US-AnaNeural';
-const OUT_DIR = path.resolve(process.cwd(), 'out');
+const OUT_DIR = path.resolve(__dirname, '../out');
 
-// Generate audio for a single text segment
 async function generateSegment(text, filename) {
   if (!text || text.trim().length === 0) return null;
   const tts = new EdgeTTS();
@@ -18,16 +20,11 @@ export async function generateAudio(script) {
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
   const audioFiles = [];
-
-  // Generate full narration audio from all spokenText
   let fullText = '';
   for (const scene of script.scenes) {
-    if (scene.spokenText) {
-      fullText += scene.spokenText + ' ';
-    }
+    if (scene.spokenText) fullText += scene.spokenText + ' ';
   }
 
-  // Split into chunks of ~1000 chars to avoid edge-tts limits
   const chunks = [];
   let chunk = '';
   const sentences = fullText.split(/(?<=[.!?])\s+/);
@@ -49,26 +46,71 @@ export async function generateAudio(script) {
     try {
       await generateSegment(chunks[i], audioPath);
       audioFiles.push(audioPath);
-      console.log(`    Saved: ${audioPath}`);
     } catch (err) {
       console.error(`  TTS failed for chunk ${i}:`, err.message);
     }
-    // Small delay between chunks
-    if (i < chunks.length - 1) {
-      await new Promise(r => setTimeout(r, 2000));
-    }
+    if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 2000));
   }
 
-  console.log(`TTS complete: ${audioFiles.length} audio files generated`);
+  console.log(`TTS complete: ${audioFiles.length} files`);
   return audioFiles;
 }
 
-// Write a metadata file mapping scenes to their audio start times
+// Merge audio files into a single narration track
+export function mergeAudioFiles(audioFiles) {
+  if (audioFiles.length === 0) return null;
+
+  const mergedPath = path.join(OUT_DIR, 'narration.mp3');
+
+  if (audioFiles.length === 1) {
+    fs.copyFileSync(audioFiles[0], mergedPath);
+    console.log('Single audio file, copied as narration.mp3');
+    return mergedPath;
+  }
+
+  // Create ffmpeg concat file
+  const concatList = audioFiles.map(f => `file '${f}'`).join('\n');
+  const listPath = path.join(OUT_DIR, 'concat_list.txt');
+  fs.writeFileSync(listPath, concatList);
+
+  console.log('Merging audio files with ffmpeg...');
+  try {
+    execSync(`ffmpeg -f concat -safe 0 -i "${listPath}" -c copy "${mergedPath}" -y 2>&1`, {
+      stdio: 'pipe',
+      timeout: 30000
+    });
+    console.log(`Audio merged: ${mergedPath}`);
+    return mergedPath;
+  } catch (err) {
+    console.error('ffmpeg merge failed:', err.message);
+    return null;
+  }
+}
+
+// Merge audio into video using ffmpeg
+export function mergeAudioWithVideo(videoPath, audioPath, outputPath) {
+  if (!fs.existsSync(audioPath)) {
+    console.log('No audio to merge, keeping video as-is');
+    return videoPath;
+  }
+
+  console.log('Merging audio into video with ffmpeg...');
+  try {
+    execSync(
+      `ffmpeg -i "${videoPath}" -i "${audioPath}" -c:v copy -c:a aac -shortest -map 0:v:0 -map 1:a:0 "${outputPath}" -y 2>&1`,
+      { stdio: 'pipe', timeout: 60000 }
+    );
+    console.log(`Video with audio: ${outputPath}`);
+    return outputPath;
+  } catch (err) {
+    console.error('Audio-video merge failed:', err.message);
+    return videoPath; // return original video as fallback
+  }
+}
+
 export function writeAudioMetadata(script, audioFiles, outputDir = OUT_DIR) {
   const totalChars = script.scenes.reduce((sum, s) => sum + (s.spokenText?.length || 0), 0);
-  const estimatedDurationMs = totalChars * 55; // rough: ~55ms per char for speech
-
-  // Estimate start times per scene based on text position
+  const estimatedDurationMs = totalChars * 55;
   let charOffset = 0;
   const sceneTimings = script.scenes.map(scene => {
     const length = scene.spokenText?.length || 0;
@@ -80,13 +122,11 @@ export function writeAudioMetadata(script, audioFiles, outputDir = OUT_DIR) {
 
   const metadata = {
     audioFiles: audioFiles.map(f => path.relative(outputDir, f)),
-    estimatedTotalDurationMs: estimatedDurationMs,
+    estimatedTotalDurationMs,
     sceneTimings,
     generatedAt: new Date().toISOString()
   };
 
-  const metaPath = path.join(outputDir, 'audio_metadata.json');
-  fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2));
-  console.log(`Audio metadata written to ${metaPath}`);
+  fs.writeFileSync(path.join(outputDir, 'audio_metadata.json'), JSON.stringify(metadata, null, 2));
   return metadata;
 }
