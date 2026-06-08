@@ -199,8 +199,8 @@ export async function generateScript(newsStories, marketData = null) {
       try { return JSON.parse(jsonStr); } catch {}
       // Try fixing common JSON issues: trailing commas, unescaped newlines in strings
       const fixed = jsonStr
-        .replace(/,\s*([}\]])/g, '$1')  // trailing commas
-        .replace(/\n/g, '\\n');           // literal newlines in strings
+        .replace(/,\s*([}\]])/g, '$1')                          // trailing commas
+        .replace(/"([^"]*)"/g, (m) => m.replace(/\n/g, '\\n')); // newlines inside quoted strings only
       try { return JSON.parse(fixed); } catch {}
     }
     return null;
