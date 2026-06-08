@@ -51,8 +51,7 @@ export async function fetchMarketData() {
     'BTC/USD', 'ETH/USD', 'SOL/USD',
     // Commodities
     'GC',     // Gold futures
-    'CL',     // Crude oil
-    'TNX'     // 10Y Treasury yield
+    'CL'      // Crude oil
   ];
 
   // Process sequentially to respect rate limits (8/min on free tier)
@@ -72,16 +71,14 @@ export async function fetchMarketData() {
   console.log(`Got market data for ${valid.length}/${symbols.length} symbols`);
 
   // Indices/commodities/crypto for the market overview
-  const indexSymbols = ['SPY', 'QQQ', 'DIA', 'BTC/USD', 'ETH/USD', 'GC', 'CL', 'TNX'];
+  const indexSymbols = ['SPY', 'QQQ', 'DIA', 'BTC/USD', 'ETH/USD', 'GC', 'CL'];
   const assets = valid
     .filter(r => indexSymbols.includes(r.symbol))
     .map(r => ({
       name: r.name,
       ticker: r.symbol,
-      value: r.symbol === 'TNX' ? `${r.price}%` : `$${r.price}`,
-      change: r.symbol === 'TNX'
-        ? (r.positive ? `+${r.percentChange}` : `${r.percentChange}`) + ' bp'
-        : (r.positive ? `+${r.percentChange}%` : `${r.percentChange}%`),
+      value: `$${r.price}`,
+      change: r.positive ? `+${r.percentChange}%` : `${r.percentChange}%`,
       positive: r.positive
     }));
 
