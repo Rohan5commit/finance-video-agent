@@ -282,7 +282,11 @@ Expand this to ${target.min}-${target.max} words. Keep the same story, same fact
           ], 0.8);
 
           // Clean up any markdown wrapping
-          const cleaned = expanded.replace(/^```[\s\S]*?```$/gm, '').replace(/^"|"$/g, '').trim();
+          const cleaned = expanded
+            .replace(/^```(?:json|markdown)?\n?/gm, '')
+            .replace(/```$/gm, '')
+            .replace(/^"|"$/g, '')
+            .trim();
           if (cleaned.length > 100) {
             scene.spokenText = cleaned;
             const newWords = cleaned.split(/\s+/).filter(Boolean).length;
@@ -298,6 +302,9 @@ Expand this to ${target.min}-${target.max} words. Keep the same story, same fact
 
     const finalWords = script.scenes.reduce((sum, s) => sum + (s.spokenText || '').split(/\s+/).filter(Boolean).length, 0);
     console.log(`Final script word count: ${finalWords}`);
+    if (finalWords < TARGET_WORDS * 0.85) {
+      console.warn(`WARNING: Final word count (${finalWords}) is still below 85% of target (${TARGET_WORDS}). Video may be shorter than expected.`);
+    }
   }
 
   return script;
