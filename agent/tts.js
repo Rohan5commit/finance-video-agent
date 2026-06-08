@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = path.resolve(__dirname, '../out');
 
 const API_KEY = process.env.ELEVENLABS_API_KEY;
-const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'pNInz6obpgDaGMFmaP6y'; // Adam — deep, warm, professional
+const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'nPczCjzI2devNBz1zQrb'; // Brian — deep, authoritative, news narrator
 const MODEL_ID = 'eleven_multilingual_v2';
 
 async function synthesizeChunk(text, outputFile) {
