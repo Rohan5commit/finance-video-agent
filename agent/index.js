@@ -3,6 +3,7 @@ import { fetchMarketData } from './marketdata.js';
 import { generateScript } from './scriptwriter.js';
 import { generateAudio, mergeAudioFiles, mergeAudioWithVideo, writeAudioMetadata } from './tts.js';
 import { uploadToYouTube } from './uploader.js';
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -50,7 +51,7 @@ async function main() {
   // Step 5.5: Scale scene durations to match actual audio length
   if (narrationPath && fs.existsSync(narrationPath)) {
     try {
-      const audioDurationRaw = require('child_process').execSync(
+      const audioDurationRaw = execSync(
         `ffprobe -v quiet -show_entries format=duration -of csv=p=0 "${narrationPath}"`,
         { stdio: 'pipe', timeout: 10000 }
       ).toString().trim();
