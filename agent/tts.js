@@ -19,6 +19,9 @@ function edgeTtsCLI(text, outputFile, voice = VOICE) {
       `python3 -m edge_tts --voice "${voice}" -f "${textFile}" --write-media "${outputFile}"`,
       { stdio: 'pipe', timeout: 60000 }
     );
+  } catch (err) {
+    const stderr = err.stderr?.toString() || '';
+    throw new Error(`edge-tts failed: ${stderr || err.message}`);
   } finally {
     // Clean up temp text file
     try { fs.unlinkSync(textFile); } catch {}
@@ -74,7 +77,13 @@ export async function generateAudio(script) {
     if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 2000));
   }
 
-  console.log(`TTS complete: ${audioFiles.length} files`);
+  console.log(`TTS complete: ${audioFiles.length}/${chunks.length} files`);
+
+  // Fail loudly if all chunks failed
+  if (audioFiles.length === 0 && chunks.length > 0) {
+    throw new Error('TTS failed for all chunks — check edge-tts installation and network');
+  }
+
   return audioFiles;
 }
 
@@ -112,7 +121,8 @@ export function mergeAudioFiles(audioFiles) {
     console.log(`Audio merged: ${mergedPath}`);
     return mergedPath;
   } catch (err) {
-    console.error('ffmpeg merge failed:', err.message);
+    const stderr = err.stderr?.toString() || '';
+    console.error('ffmpeg merge failed:', stderr || err.message);
     return null;
   }
 }
@@ -141,7 +151,8 @@ export function mergeAudioWithVideo(videoPath, audioPath, outputPath) {
     console.log(`Video with audio: ${outputPath}`);
     return outputPath;
   } catch (err) {
-    console.error('Audio-video merge failed:', err.message);
+    const stderr = err.stderr?.toString() || '';
+    console.error('Audio-video merge failed:', stderr || err.message);
     return videoPath; // return original video as fallback
   }
 }
@@ -160,7 +171,7 @@ export function writeAudioMetadata(script, audioFiles, outputDir = OUT_DIR) {
 
   const metadata = {
     audioFiles: audioFiles.map(f => path.relative(outputDir, f)),
-    estimatedTotalDurationMs,
+    estimatedDurationMs,
     sceneTimings,
     generatedAt: new Date().toISOString()
   };
