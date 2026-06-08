@@ -172,6 +172,9 @@ export function mergeAudioWithVideo(videoPath, audioPath, outputPath) {
 
   const videoDuration = getMediaDuration(videoPath);
   const audioDuration = getMediaDuration(audioPath);
+  if (videoDuration === 0 || audioDuration === 0) {
+    console.warn('  WARNING: Could not detect media durations via ffprobe. Audio may be shorter than video.');
+  }
   console.log(`  Video duration: ${videoDuration.toFixed(1)}s, Audio duration: ${audioDuration.toFixed(1)}s`);
 
   console.log('Merging audio into video with ffmpeg...');
