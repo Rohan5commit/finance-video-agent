@@ -10,6 +10,13 @@ async function quote(symbol) {
       timeout: 10000
     });
     const d = r.data;
+
+    // Twelve Data returns error codes for unsupported symbols
+    if (d.code) {
+      console.error(`  Twelve Data error for ${symbol}: ${d.message || d.code}`);
+      return null;
+    }
+
     return {
       symbol,
       name: d.name || symbol,
@@ -19,7 +26,7 @@ async function quote(symbol) {
       positive: parseFloat(d.change) >= 0
     };
   } catch (e) {
-    console.error(`Twelve Data fetch failed for ${symbol}:`, e.message);
+    console.error(`  Twelve Data fetch failed for ${symbol}:`, e.message);
     return null;
   }
 }
@@ -32,41 +39,54 @@ export async function fetchMarketData() {
 
   console.log('Fetching real-time market data from Twelve Data...');
 
+  // Indices use ETFs since Twelve Data free tier doesn't support ^GSPC/^IXIC/^DJI directly
   const symbols = [
-    '^GSPC', '^IXIC', '^DJI',
+    // Major indices via ETFs
+    'SPY',    // S&P 500
+    'QQQ',    // NASDAQ
+    'DIA',    // Dow Jones
+    // Major stocks
     'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA',
+    // Crypto
     'BTC/USD', 'ETH/USD', 'SOL/USD',
-    'GC', 'CL', '^TNX'
+    // Commodities
+    'GC',     // Gold futures
+    'CL',     // Crude oil
+    'TNX'     // 10Y Treasury yield
   ];
 
-  // Batch in groups of 8 (free tier limit: 8/min)
+  // Process sequentially to respect rate limits (8/min on free tier)
   const results = [];
-  for (let i = 0; i < symbols.length; i += 8) {
-    const batch = symbols.slice(i, i + 8);
+  const BATCH_SIZE = 7; // Stay under 8/min
+  for (let i = 0; i < symbols.length; i += BATCH_SIZE) {
+    const batch = symbols.slice(i, i + BATCH_SIZE);
     const batchResults = await Promise.all(batch.map(s => quote(s)));
     results.push(...batchResults.filter(Boolean));
-    if (i + 8 < symbols.length) {
-      console.log(`  Batch complete, waiting for rate limit...`);
-      await new Promise(r => setTimeout(r, 10000)); // 10s between batches
+    if (i + BATCH_SIZE < symbols.length) {
+      console.log(`  Batch ${Math.floor(i / BATCH_SIZE) + 1} complete (${results.length} ok), waiting 60s for rate limit...`);
+      await new Promise(r => setTimeout(r, 61000)); // 61s to be safe
     }
   }
 
   const valid = results.filter(r => r !== null);
   console.log(`Got market data for ${valid.length}/${symbols.length} symbols`);
 
-  // Format for the script
+  // Indices/commodities/crypto for the market overview
+  const indexSymbols = ['SPY', 'QQQ', 'DIA', 'BTC/USD', 'ETH/USD', 'GC', 'CL', 'TNX'];
   const assets = valid
-    .filter(r => ['^GSPC', '^IXIC', '^DJI', 'BTC/USD', 'ETH/USD', 'GC', 'CL', '^TNX'].includes(r.symbol))
+    .filter(r => indexSymbols.includes(r.symbol))
     .map(r => ({
       name: r.name,
       ticker: r.symbol,
-      value: r.price.startsWith('$') ? r.price : `$${r.price}`,
+      value: `$${r.price}`,
       change: r.positive ? `+${r.percentChange}%` : `${r.percentChange}%`,
       positive: r.positive
     }));
 
+  // Top movers: just the stocks, sorted by abs(% change)
+  const stockSymbols = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA'];
   const topMovers = valid
-    .filter(r => !['SPX', 'IXIC', 'DJI', 'BTC/USD', 'ETH/USD', 'GC', 'CL', 'TNX'].includes(r.symbol))
+    .filter(r => stockSymbols.includes(r.symbol))
     .sort((a, b) => Math.abs(parseFloat(b.percentChange)) - Math.abs(parseFloat(a.percentChange)))
     .slice(0, 5);
 
