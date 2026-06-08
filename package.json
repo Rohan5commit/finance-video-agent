@@ -1,0 +1,17 @@
+{
+  "name": "finance-video-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "agent": "node agent/index.js",
+    "render": "node scripts/render.js"
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.0",
+    "@remotion/renderer": "^4.0.0",
+    "remotion": "^4.0.0",
+    "openai": "^4.0.0",
+    "googleapis": "^140.0.0",
+    "axios": "^1.6.0"
+  }
+}
