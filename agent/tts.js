@@ -143,7 +143,20 @@ export function mergeAudioFiles(audioFiles) {
   }
 }
 
-// Merge audio into video using ffmpeg
+// Get duration of a media file in seconds using ffprobe
+function getMediaDuration(filePath) {
+  try {
+    const result = execSync(
+      `ffprobe -v quiet -show_entries format=duration -of csv=p=0 "${filePath}"`,
+      { stdio: 'pipe', timeout: 10000 }
+    ).toString().trim();
+    return parseFloat(result) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+// Merge audio into video using ffmpeg, padding audio with silence if shorter
 export function mergeAudioWithVideo(videoPath, audioPath, outputPath) {
   if (!fs.existsSync(audioPath)) {
     console.log('No audio to merge, keeping video as-is');
@@ -157,12 +170,31 @@ export function mergeAudioWithVideo(videoPath, audioPath, outputPath) {
     return videoPath;
   }
 
+  const videoDuration = getMediaDuration(videoPath);
+  const audioDuration = getMediaDuration(audioPath);
+  console.log(`  Video duration: ${videoDuration.toFixed(1)}s, Audio duration: ${audioDuration.toFixed(1)}s`);
+
   console.log('Merging audio into video with ffmpeg...');
   try {
-    execSync(
-      `ffmpeg -i "${videoPath}" -i "${audioPath}" -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 "${outputPath}" -y`,
-      { stdio: 'pipe', timeout: 60000 }
-    );
+    if (audioDuration > 0 && videoDuration > 0 && audioDuration < videoDuration) {
+      // Audio is shorter than video — pad with silence to match video length
+      console.log(`  Audio is ${(videoDuration - audioDuration).toFixed(1)}s shorter than video — padding with silence`);
+      execSync(
+        `ffmpeg -i "${videoPath}" -i "${audioPath}" ` +
+        `-filter_complex "[1:a]apad=whole_dur=${videoDuration.toFixed(3)}[padded]" ` +
+        `-map 0:v:0 -map "[padded]" -c:v copy -c:a aac -t ${videoDuration.toFixed(3)} "${outputPath}" -y`,
+        { stdio: 'pipe', timeout: 120000 }
+      );
+    } else {
+      // Audio is longer or same — use shortest (trims audio to video length)
+      if (audioDuration > videoDuration) {
+        console.log(`  Audio is ${(audioDuration - videoDuration).toFixed(1)}s longer than video — trimming to match`);
+      }
+      execSync(
+        `ffmpeg -i "${videoPath}" -i "${audioPath}" -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest "${outputPath}" -y`,
+        { stdio: 'pipe', timeout: 120000 }
+      );
+    }
     console.log(`Video with audio: ${outputPath}`);
     return outputPath;
   } catch (err) {
