@@ -52,7 +52,7 @@ Notice: short punchy paragraphs, "..." pauses before and after key numbers, blan
 
 1. NEVER use filler phrases like "Welcome back", "Today we discuss", "In this video", "Let's dive in", "Without further ado", "Let's get started".
 2. EVERY scene covers a DIFFERENT topic. No repetition across scenes. Zero.
-3. Word count per scene: intro 40-60 words, news stories 80-100 words each, explainer 100-120 words, market 60-80 words, outro 40-60 words. The video targets 6 minutes total.
+3. Word count per scene: intro 100-150 words, news stories 200-250 words each, explainer 250-300 words, market 150-200 words, outro 100-150 words. TARGET: the full script MUST be 1200-1600 words total to fill a 6-minute narration. This is critical — if you write too little, the video will have long stretches of silence. Write MORE, not less. Each scene should be meaty and substantive.
 4. Start with a hook that uses a SPECIFIC number or event — not a generic statement.
 5. Use real data from the market data AND news provided below. Get the numbers right.
 6. Each news scene must be a different company, different sector, different angle.
@@ -82,14 +82,14 @@ Output ONLY valid JSON (no markdown, no code fences, no explanation):
       "durationSeconds": 30,
       "headline": "Hook — 6 words max, reference a specific number",
       "subheadline": "One sentence that sets the stage",
-      "spokenText": "3-4 punchy sentences broken into 2 short paragraphs with a '...' pause before the hook. Start mid-thought. Reference a real number or event. Set the tone. No filler. 40-60 words. Use blank lines between paragraphs for natural pauses."
+      "spokenText": "5-8 sentences broken into 3-4 short paragraphs with '...' pauses. Start mid-thought with a hook. Reference a real number or event. Set the tone for the whole video. Tease the stories coming up. 100-150 words. Use blank lines between paragraphs for natural pauses. Be vivid and engaging."
     },
     {
       "id": "story1",
       "type": "news",
       "durationSeconds": 60,
       "title": "Specific headline — not generic",
-      "spokenText": "6-8 sentences broken into 2-3 short paragraphs. Tell ONE story in depth. What happened, the numbers, why it matters, what's next. Use real company name + ticker. Include at least 2 specific numbers. Add '...' pauses before key reveals. Use blank lines between paragraphs.",
+      "spokenText": "12-16 sentences broken into 4-5 short paragraphs. Tell ONE story in depth with rich detail. What happened, the exact numbers, why it matters to regular investors, what could happen next, historical context, analyst reactions. Use real company name + ticker. Include at least 3-4 specific numbers. Add '...' pauses before key reveals. Use blank lines between paragraphs. 200-250 words. Make it feel like a mini-documentary.",
       "keyFact": "One bold stat that makes the viewer's eyes widen",
       "ticker": "AAPL"
     },
@@ -98,7 +98,7 @@ Output ONLY valid JSON (no markdown, no code fences, no explanation):
       "type": "news",
       "durationSeconds": 60,
       "title": "Different topic — different sector than story1",
-      "spokenText": "6-8 sentences broken into 2-3 short paragraphs. Different company, different sector. Tell it like a story with context and implications. Include specific numbers. Use '...' for dramatic pauses. Use blank lines between paragraphs.",
+      "spokenText": "12-16 sentences broken into 4-5 short paragraphs. Different company, different sector. Tell it like a story with rich context, background, and implications. Include specific numbers, analyst quotes, market reactions. Use '...' for dramatic pauses. Use blank lines between paragraphs. 200-250 words. Give the viewer the full picture.",
       "keyFact": "One bold stat",
       "ticker": "NVDA"
     },
@@ -107,7 +107,7 @@ Output ONLY valid JSON (no markdown, no code fences, no explanation):
       "type": "news",
       "durationSeconds": 60,
       "title": "Yet another angle — crypto, macro, or commodity",
-      "spokenText": "6-8 sentences broken into 2-3 short paragraphs. Tell the crypto/commodity/macro story with specifics. Connect to the bigger market picture. Why should the viewer care? Include at least 2 numbers. Use '...' pauses and blank lines between paragraphs.",
+      "spokenText": "12-16 sentences broken into 4-5 short paragraphs. Tell the crypto/commodity/macro story with rich detail. Connect to the bigger market picture. Include historical context, what drove the move, what analysts are saying, implications for regular investors. Include at least 3-4 numbers. Use '...' pauses and blank lines between paragraphs. 200-250 words.",
       "keyFact": "One bold stat",
       "ticker": "BTC-USD"
     },
@@ -116,21 +116,21 @@ Output ONLY valid JSON (no markdown, no code fences, no explanation):
       "type": "explainer",
       "durationSeconds": 90,
       "title": "A concept from the news, explained simply",
-      "spokenText": "100-120 words broken into 3-4 short paragraphs. Take one concept from the stories above and break it down thoroughly. Use a concrete analogy. Give a real-world example. Make it click for someone who's never heard of this before. Use '...' pauses before key explanations. Blank lines between paragraphs for breathing room.",
+      "spokenText": "15-20 sentences broken into 5-6 short paragraphs. Take one concept from the stories above and break it down thoroughly. Use a concrete analogy that anyone can relate to. Give multiple real-world examples. Walk through the mechanics step by step. Explain why it matters for the average person. Use '...' pauses before key explanations. Blank lines between paragraphs. 250-300 words. Make this the meatiest, most informative part of the video.",
       "bullets": ["Key insight 1", "Key insight 2", "Key insight 3"]
     },
     {
       "id": "market",
       "type": "market",
       "durationSeconds": 45,
-      "spokenText": "4-6 sentences broken into 2 short paragraphs. Walk through the major indices and movers. Use real numbers. Reference SPY as 'the S&P 500', QQQ as 'the NASDAQ', DIA as 'the Dow'. Highlight the biggest winner and loser of the day. Never confuse the tickers. Use '...' before standout numbers.",
+      "spokenText": "8-12 sentences broken into 3-4 short paragraphs. Walk through ALL the major indices and movers in detail. Use real numbers. Reference SPY as 'the S&P 500', QQQ as 'the NASDAQ', DIA as 'the Dow'. Highlight the biggest winner and loser. Discuss sector rotation, volume trends, what the market breadth looks like. Never confuse the tickers. Use '...' before standout numbers. 150-200 words.",
       "assets": []
     },
     {
       "id": "outro",
       "type": "outro",
       "durationSeconds": 30,
-      "spokenText": "3-4 sentences broken into 2 short paragraphs with a '...' pause before the final thought. Forward-looking. Tie together the themes from this video. End with a thought about what to watch next week. Not a call to action.",
+      "spokenText": "5-8 sentences broken into 3 short paragraphs. Forward-looking. Tie together ALL the themes from this video into a cohesive narrative. End with a thought-provoking observation about what to watch next week. 100-150 words. Use '...' pauses for emphasis. Not a call to action. Make the viewer think.",
       "summaryBullets": ["Key takeaway 1", "Key takeaway 2", "Key takeaway 3"]
     }
   ]
@@ -142,7 +142,7 @@ async function callNVIDIA(messages, temperature = 0.75) {
     {
       model: process.env.NVIDIA_MODEL || 'meta/llama-3.1-70b-instruct',
       temperature,
-      max_tokens: 3000,
+      max_tokens: 5000,
       messages
     },
     {
