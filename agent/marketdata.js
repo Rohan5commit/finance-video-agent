@@ -63,8 +63,8 @@ export async function fetchMarketData() {
     const batchResults = await Promise.all(batch.map(s => quote(s)));
     results.push(...batchResults.filter(Boolean));
     if (i + BATCH_SIZE < symbols.length) {
-      console.log(`  Batch ${Math.floor(i / BATCH_SIZE) + 1} complete (${results.length} ok), waiting 60s for rate limit...`);
-      await new Promise(r => setTimeout(r, 61000)); // 61s to be safe
+      console.log(`  Batch ${Math.floor(i / BATCH_SIZE) + 1} complete (${results.length} ok), waiting 30s for rate limit...`);
+      await new Promise(r => setTimeout(r, 30000)); // 30s between batches
     }
   }
 
@@ -78,8 +78,10 @@ export async function fetchMarketData() {
     .map(r => ({
       name: r.name,
       ticker: r.symbol,
-      value: `$${r.price}`,
-      change: r.positive ? `+${r.percentChange}%` : `${r.percentChange}%`,
+      value: r.symbol === 'TNX' ? `${r.price}%` : `$${r.price}`,
+      change: r.symbol === 'TNX'
+        ? (r.positive ? `+${r.percentChange}` : `${r.percentChange}`) + ' bp'
+        : (r.positive ? `+${r.percentChange}%` : `${r.percentChange}%`),
       positive: r.positive
     }));
 
