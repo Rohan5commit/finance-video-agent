@@ -18,9 +18,9 @@ async function synthesizeChunk(text, outputFile) {
       text,
       model_id: MODEL_ID,
       voice_settings: {
-        stability: 0.5,
+        stability: 0.35,
         similarity_boost: 0.75,
-        style: 0.4,
+        style: 0.55,
         use_speaker_boost: true
       }
     },
