@@ -1,5 +1,7 @@
 import { fetchFinanceNews } from './researcher.js';
+import { fetchMarketData } from './marketdata.js';
 import { generateScript } from './scriptwriter.js';
+import { generateAudio, writeAudioMetadata } from './tts.js';
 import { uploadToYouTube } from './uploader.js';
 import fs from 'fs';
 import path from 'path';
@@ -9,27 +11,48 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function main() {
   console.log('=== Finance Video Agent ===');
-  console.log('Step 1/5: Fetching finance news...');
-  
+
+  // Step 1: Fetch news (55 searches)
+  console.log('Step 1/6: Fetching finance news...');
   const stories = await fetchFinanceNews();
   console.log(`Got ${stories.length} stories`);
 
-  console.log('Step 2/5: Generating script with NVIDIA NIM...');
-  const script = await generateScript(stories);
-  console.log(`Script generated: "${script.title}"`);
+  // Step 2: Fetch real market data from Twelve Data
+  console.log('Step 2/6: Fetching market data...');
+  const marketData = await fetchMarketData();
+  console.log(`Got data for ${marketData.allQuotes.length} symbols`);
 
-  console.log('Step 3/5: Writing script.json...');
+  // Step 3: Generate script
+  console.log('Step 3/6: Generating script with NVIDIA NIM...');
+  const script = await generateScript(stories, marketData);
+  console.log(`Script: "${script.title}" (${script.scenes.length} scenes)`);
+
+  // Step 4: Write script.json
+  console.log('Step 4/6: Writing script.json...');
   const scriptPath = path.resolve(__dirname, '../remotion/script.json');
   fs.mkdirSync(path.dirname(scriptPath), { recursive: true });
   fs.writeFileSync(scriptPath, JSON.stringify(script, null, 2));
-  console.log('script.json written');
 
-  console.log('Step 4/5: Rendering video with Remotion...');
+  // Step 5: Render video
+  console.log('Step 5/6: Rendering video with Remotion...');
   const { default: render } = await import('../scripts/render.js');
   await render();
   console.log('Render complete');
 
-  console.log('Step 5/5: Uploading to YouTube...');
+  // Step 6: Generate TTS audio (after video render succeeds)
+  console.log('Step 6/6: Generating TTS audio...');
+  try {
+    const audioFiles = await generateAudio(script);
+    if (audioFiles.length > 0) {
+      writeAudioMetadata(script, audioFiles);
+      console.log(`Generated ${audioFiles.length} audio files`);
+    }
+  } catch (err) {
+    console.error('TTS generation failed (non-fatal):', err.message);
+  }
+
+  // Upload to YouTube (skip for now if TTS not ready)
+  console.log('\nUploading to YouTube...');
   try {
     const url = await uploadToYouTube(
       path.resolve(__dirname, '../out/video.mp4'),
@@ -37,11 +60,10 @@ async function main() {
       script.description,
       script.tags
     );
-    console.log(`SUCCESS! Video uploaded: ${url}`);
+    console.log(`SUCCESS! ${url}`);
   } catch (err) {
     console.error('YouTube upload failed:', err.message);
-    console.log('Video saved to out/video.mp4. Upload manually.');
-    process.exit(0);
+    console.log('Video saved to out/video.mp4');
   }
 }
 
