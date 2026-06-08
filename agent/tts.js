@@ -1,4 +1,3 @@
-import { EdgeTTS } from 'node-edge-tts';
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
@@ -8,10 +7,33 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const VOICE = 'en-US-AnaNeural';
 const OUT_DIR = path.resolve(__dirname, '../out');
 
+// Use Python edge-tts CLI (the most reliable edge-tts implementation)
+// Install: pip install edge-tts
+function edgeTtsCLI(text, outputFile, voice = VOICE) {
+  // Use a temp file for the text to avoid shell escaping issues
+  const textFile = outputFile.replace(/\.mp3$/, '.txt');
+  fs.writeFileSync(textFile, text);
+
+  try {
+    execSync(
+      `python3 -m edge_tts --voice "${voice}" -f "${textFile}" --write-media "${outputFile}"`,
+      { stdio: 'pipe', timeout: 60000 }
+    );
+  } finally {
+    // Clean up temp text file
+    try { fs.unlinkSync(textFile); } catch {}
+  }
+
+  if (!fs.existsSync(outputFile) || fs.statSync(outputFile).size === 0) {
+    throw new Error(`edge-tts produced no output for: ${text.slice(0, 80)}...`);
+  }
+
+  return outputFile;
+}
+
 async function generateSegment(text, filename) {
   if (!text || text.trim().length === 0) return null;
-  const tts = new EdgeTTS();
-  await tts.save({ voice: VOICE, text }, filename);
+  edgeTtsCLI(text, filename, VOICE);
   return filename;
 }
 
@@ -68,6 +90,14 @@ export function mergeAudioFiles(audioFiles) {
     return mergedPath;
   }
 
+  // Check if ffmpeg is available
+  try {
+    execSync('ffmpeg -version', { stdio: 'pipe', timeout: 5000 });
+  } catch {
+    console.error('ffmpeg not found! Audio merge requires ffmpeg.');
+    return null;
+  }
+
   // Create ffmpeg concat file
   const concatList = audioFiles.map(f => `file '${f}'`).join('\n');
   const listPath = path.join(OUT_DIR, 'concat_list.txt');
@@ -91,6 +121,14 @@ export function mergeAudioFiles(audioFiles) {
 export function mergeAudioWithVideo(videoPath, audioPath, outputPath) {
   if (!fs.existsSync(audioPath)) {
     console.log('No audio to merge, keeping video as-is');
+    return videoPath;
+  }
+
+  // Check ffmpeg
+  try {
+    execSync('ffmpeg -version', { stdio: 'pipe', timeout: 5000 });
+  } catch {
+    console.error('ffmpeg not found! Video-audio merge requires ffmpeg.');
     return videoPath;
   }
 
