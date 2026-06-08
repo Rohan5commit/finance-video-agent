@@ -35,17 +35,19 @@ async function searchTavily(query) {
 
 export async function fetchFinanceNews() {
   const today = getTodayDate();
+  const year = new Date().getFullYear();
+  const month = new Date().toLocaleString('en-US', { month: 'long' });
 
   // 55 diverse queries covering stocks, crypto, macro, earnings, sectors
   const queries = [
     // Major indices & macro (8)
     `S&P 500 stock market news today ${today}`,
-    'Federal Reserve interest rate decision forecast June 2026',
-    'US inflation CPI data latest numbers 2026',
+    `Federal Reserve interest rate decision forecast ${month} ${year}`,
+    `US inflation CPI data latest numbers ${year}`,
     'US jobs report unemployment rate latest',
     'NASDAQ tech stocks performance this week',
     'Dow Jones industrial average news today',
-    'US dollar index DXY trend June 2026',
+    `US dollar index DXY trend ${month} ${year}`,
     'Treasury yields 10 year bond market update',
 
     // Tech stocks (10)
@@ -58,22 +60,22 @@ export async function fetchFinanceNews() {
     'Tesla TSLA stock news latest',
     'Semiconductor stocks news AMD Intel',
     'Cloud computing SaaS stocks performance',
-    'AI artificial intelligence stocks news June 2026',
+    `AI artificial intelligence stocks news ${month} ${year}`,
 
     // Crypto (8)
     'Bitcoin BTC price news today',
     'Ethereum ETH price news today',
     'Solana SOL crypto news',
-    'Crypto regulation news 2026',
+    `Crypto regulation news ${year}`,
     'Bitcoin ETF flows institutional adoption',
-    'DeFi decentralized finance news June 2026',
+    `DeFi decentralized finance news ${month} ${year}`,
     'Stablecoin regulation news latest',
     'Crypto market crash or rally today',
 
     // Finance & banking (5)
     'Bank earnings JPMorgan Goldman Sachs news',
     'Wall Street investment banking news',
-    'Private equity M&A deals news 2026',
+    `Private equity M&A deals news ${year}`,
     'IPO market news latest',
     'Hedge fund news market moves',
 
@@ -87,20 +89,20 @@ export async function fetchFinanceNews() {
     // Other sectors (5)
     'Healthcare pharma stocks news',
     'EV electric vehicle stocks news',
-    'Retail consumer spending news 2026',
-    'Real estate housing market news 2026',
+    `Retail consumer spending news ${year}`,
+    `Real estate housing market news ${year}`,
     'Defense aerospace stocks news',
 
     // International (5)
     'China stock market economy news',
     'European stock market ECB news',
     'Japan Nikkei yen news latest',
-    'Emerging markets BRICS news 2026',
+    `Emerging markets BRICS news ${year}`,
     'Global trade tariffs news latest',
 
     // Economics & policy (5)
-    'US GDP growth forecast 2026',
-    'Recession risk economic outlook 2026',
+    `US GDP growth forecast ${year}`,
+    `Recession risk economic outlook ${year}`,
     'US national debt fiscal policy news',
     'Corporate earnings season preview',
     'Stock market bubble or correction warning',
