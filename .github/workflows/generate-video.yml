@@ -27,15 +27,13 @@ jobs:
       - name: Install ffmpeg for audio processing
         run: sudo apt-get update -y && sudo apt-get install -y ffmpeg
 
-      - name: Install Python edge-tts for TTS narration
-        run: pip install --user edge-tts
-
       - name: Generate video
         env:
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
           NVIDIA_MODEL: meta/llama-3.1-8b-instruct
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
