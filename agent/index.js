@@ -47,6 +47,39 @@ async function main() {
     console.error('TTS failed (continuing without audio):', err.message);
   }
 
+  // Step 5.5: Scale scene durations to match actual audio length
+  if (narrationPath && fs.existsSync(narrationPath)) {
+    try {
+      const audioDurationRaw = require('child_process').execSync(
+        `ffprobe -v quiet -show_entries format=duration -of csv=p=0 "${narrationPath}"`,
+        { stdio: 'pipe', timeout: 10000 }
+      ).toString().trim();
+      const audioDurationSec = parseFloat(audioDurationRaw) || 0;
+      const totalSceneDuration = script.scenes.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+
+      if (audioDurationSec > 0 && totalSceneDuration > 0) {
+        const scaleFactor = audioDurationSec / totalSceneDuration;
+        console.log(`  Audio duration: ${audioDurationSec.toFixed(1)}s, Scene total: ${totalSceneDuration}s, Scale: ${scaleFactor.toFixed(2)}x`);
+
+        // Scale each scene proportionally, with a minimum of 5 seconds per scene
+        for (const scene of script.scenes) {
+          const scaled = Math.max(5, Math.round(scene.durationSeconds * scaleFactor));
+          scene.durationSeconds = scaled;
+        }
+
+        const newTotal = script.scenes.reduce((sum, s) => sum + s.durationSeconds, 0);
+        console.log(`  Scaled scene durations: ${script.scenes.map(s => s.durationSeconds).join('+')} = ${newTotal}s`);
+
+        // Re-write script.json with updated durations
+        const scriptPath = path.resolve(__dirname, '../remotion/script.json');
+        fs.writeFileSync(scriptPath, JSON.stringify(script, null, 2));
+        console.log('  Updated script.json with audio-matched durations');
+      }
+    } catch (err) {
+      console.warn('  Could not scale scene durations to audio:', err.message);
+    }
+  }
+
   // Step 6: Render video
   console.log('Step 6/7: Rendering video with Remotion...');
   const { default: render } = await import('../scripts/render.js');
