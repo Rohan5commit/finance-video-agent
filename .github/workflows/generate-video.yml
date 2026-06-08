@@ -27,6 +27,7 @@ jobs:
       - name: Generate video
         env:
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          NVIDIA_MODEL: meta/llama-3.1-8b-instruct
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
@@ -40,9 +41,3 @@ jobs:
         with:
           name: finance-video
           path: out/video.mp4
-
-      - name: Upload audio artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: finance-audio
-          path: out/narration_*.mp3
