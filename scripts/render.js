@@ -6,7 +6,7 @@ import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-async function render() {
+export default async function render() {
   const entryPoint = path.resolve(__dirname, '../remotion/index.js');
   
   const bundled = await bundle({ entryPoint, webpackOverride: c => c });
@@ -26,5 +26,3 @@ async function render() {
   
   console.log('Render complete: out/video.mp4');
 }
-
-render().catch(e => { console.error(e); process.exit(1); });
