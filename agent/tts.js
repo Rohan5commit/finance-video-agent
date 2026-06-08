@@ -18,7 +18,7 @@ async function synthesizeChunk(text, outputFile) {
       text,
       model_id: MODEL_ID,
       voice_settings: {
-        stability: 0.35,
+        stability: 0.4,
         similarity_boost: 0.75,
         style: 0.55,
         use_speaker_boost: true
@@ -56,7 +56,7 @@ export async function generateAudio(script) {
   const audioFiles = [];
   let fullText = '';
   for (const scene of script.scenes) {
-    if (scene.spokenText) fullText += scene.spokenText + ' ';
+    if (scene.spokenText) fullText += scene.spokenText.trim() + ' ';
   }
 
   // Split into chunks under 5000 chars (ElevenLabs limit)
