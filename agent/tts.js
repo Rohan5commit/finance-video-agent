@@ -1,47 +1,56 @@
+import axios from 'axios';
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const VOICE = 'en-US-AnaNeural';
 const OUT_DIR = path.resolve(__dirname, '../out');
 
-// Use Python edge-tts CLI (the most reliable edge-tts implementation)
-// Install: pip install edge-tts
-function edgeTtsCLI(text, outputFile, voice = VOICE) {
-  // Use a temp file for the text to avoid shell escaping issues
-  const textFile = outputFile.replace(/\.mp3$/, '.txt');
-  fs.writeFileSync(textFile, text);
+const API_KEY = process.env.ELEVENLABS_API_KEY;
+const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'pNInz6obpgDaGMFmaP6y'; // Adam — deep, warm, professional
+const MODEL_ID = 'eleven_multilingual_v2';
 
-  try {
-    execSync(
-      `python3 -m edge_tts --voice "${voice}" -f "${textFile}" --write-media "${outputFile}"`,
-      { stdio: 'pipe', timeout: 60000 }
-    );
-  } catch (err) {
-    const stderr = err.stderr?.toString() || '';
-    throw new Error(`edge-tts failed: ${stderr || err.message}`);
-  } finally {
-    // Clean up temp text file
-    try { fs.unlinkSync(textFile); } catch {}
-  }
+async function synthesizeChunk(text, outputFile) {
+  const response = await axios.post(
+    `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
+    {
+      text,
+      model_id: MODEL_ID,
+      voice_settings: {
+        stability: 0.5,
+        similarity_boost: 0.75,
+        style: 0.4,
+        use_speaker_boost: true
+      }
+    },
+    {
+      headers: {
+        'xi-api-key': API_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg'
+      },
+      responseType: 'arraybuffer',
+      timeout: 60000
+    }
+  );
+
+  fs.writeFileSync(outputFile, Buffer.from(response.data));
 
   if (!fs.existsSync(outputFile) || fs.statSync(outputFile).size === 0) {
-    throw new Error(`edge-tts produced no output for: ${text.slice(0, 80)}...`);
+    throw new Error(`ElevenLabs produced no output for: ${text.slice(0, 80)}...`);
   }
 
   return outputFile;
 }
 
-async function generateSegment(text, filename) {
-  if (!text || text.trim().length === 0) return null;
-  edgeTtsCLI(text, filename, VOICE);
-  return filename;
-}
-
 export async function generateAudio(script) {
-  console.log('Generating TTS audio for all scenes...');
+  if (!API_KEY) {
+    console.error('ELEVENLABS_API_KEY not set. Skipping TTS.');
+    return [];
+  }
+
+  console.log('Generating TTS audio with ElevenLabs...');
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
   const audioFiles = [];
@@ -50,11 +59,12 @@ export async function generateAudio(script) {
     if (scene.spokenText) fullText += scene.spokenText + ' ';
   }
 
+  // Split into chunks under 5000 chars (ElevenLabs limit)
   const chunks = [];
   let chunk = '';
   const sentences = fullText.split(/(?<=[.!?])\s+/);
   for (const sentence of sentences) {
-    if ((chunk + sentence).length > 1000 && chunk.length > 0) {
+    if ((chunk + sentence).length > 4500 && chunk.length > 0) {
       chunks.push(chunk.trim());
       chunk = sentence;
     } else {
@@ -69,19 +79,23 @@ export async function generateAudio(script) {
     const audioPath = path.join(OUT_DIR, `narration_${i}.mp3`);
     console.log(`  Generating chunk ${i + 1}/${chunks.length}...`);
     try {
-      await generateSegment(chunks[i], audioPath);
+      await synthesizeChunk(chunks[i], audioPath);
+      const size = fs.statSync(audioPath).size;
+      console.log(`    ✓ ${Math.round(size / 1024)}KB`);
       audioFiles.push(audioPath);
     } catch (err) {
-      console.error(`  TTS failed for chunk ${i}:`, err.message);
+      const status = err.response?.status;
+      const detail = err.response?.data ? Buffer.from(err.response.data).toString().slice(0, 200) : '';
+      console.error(`  TTS failed for chunk ${i}: ${status || ''} ${detail || err.message}`);
     }
-    if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 2000));
+    // Rate limit: 1s between requests
+    if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 1000));
   }
 
   console.log(`TTS complete: ${audioFiles.length}/${chunks.length} files`);
 
-  // Fail loudly if all chunks failed
   if (audioFiles.length === 0 && chunks.length > 0) {
-    throw new Error('TTS failed for all chunks — check edge-tts installation and network');
+    throw new Error('TTS failed for all chunks — check ELEVENLABS_API_KEY');
   }
 
   return audioFiles;
@@ -99,7 +113,6 @@ export function mergeAudioFiles(audioFiles) {
     return mergedPath;
   }
 
-  // Check if ffmpeg is available
   try {
     execSync('ffmpeg -version', { stdio: 'pipe', timeout: 5000 });
   } catch {
@@ -107,7 +120,6 @@ export function mergeAudioFiles(audioFiles) {
     return null;
   }
 
-  // Create ffmpeg concat file
   const concatList = audioFiles.map(f => `file '${f}'`).join('\n');
   const listPath = path.join(OUT_DIR, 'concat_list.txt');
   fs.writeFileSync(listPath, concatList);
@@ -134,7 +146,6 @@ export function mergeAudioWithVideo(videoPath, audioPath, outputPath) {
     return videoPath;
   }
 
-  // Check ffmpeg
   try {
     execSync('ffmpeg -version', { stdio: 'pipe', timeout: 5000 });
   } catch {
@@ -153,7 +164,7 @@ export function mergeAudioWithVideo(videoPath, audioPath, outputPath) {
   } catch (err) {
     const stderr = err.stderr?.toString() || '';
     console.error('Audio-video merge failed:', stderr || err.message);
-    return videoPath; // return original video as fallback
+    return videoPath;
   }
 }
 
