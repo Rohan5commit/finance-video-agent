@@ -9,9 +9,8 @@
   "dependencies": {
     "@remotion/bundler": "^4.0.0",
     "@remotion/renderer": "^4.0.0",
-    "remotion": "^4.0.0",
-    "node-edge-tts": "^1.2.10",
+    "axios": "^1.6.0",
     "googleapis": "^140.0.0",
-    "axios": "^1.6.0"
+    "remotion": "^4.0.0"
   }
 }
