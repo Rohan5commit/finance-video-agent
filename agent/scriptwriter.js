@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import axios from 'axios';
 
 const SYSTEM_PROMPT = `You are a professional finance educator writing YouTube video scripts. Your voice is sharp, specific, and human — like a knowledgeable friend explaining the markets. NEVER use filler phrases like 'Welcome back', 'Today we discuss', 'In this video'. Start with a hook that references a specific number or event. Use rhetorical questions. Vary sentence length. Reference real tickers and real numbers from the news provided.
 
@@ -73,54 +73,56 @@ Output ONLY valid JSON (no markdown, no explanation) with this exact structure:
   ]
 }`;
 
-export async function generateScript(newsStories) {
-  const client = new OpenAI({
-    baseURL: 'https://integrate.api.nvidia.com/v1',
-    apiKey: process.env.NVIDIA_API_KEY
-  });
+async function callNVIDIA(messages, temperature = 0.75) {
+  const response = await axios.post(
+    'https://integrate.api.nvidia.com/v1/chat/completions',
+    {
+      model: process.env.NVIDIA_MODEL || 'meta/llama-3.1-70b-instruct',
+      temperature,
+      max_tokens: 2500,
+      messages
+    },
+    {
+      headers: {
+        'Authorization': `Bearer ${process.env.NVIDIA_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 90000
+    }
+  );
+  return response.data.choices[0].message.content;
+}
 
+export async function generateScript(newsStories) {
   const userMessage = JSON.stringify(newsStories, null, 2);
 
-  let response;
+  let raw;
   try {
-    response = await client.chat.completions.create({
-      model: 'meta/llama-3.1-70b-instruct',
-      temperature: 0.75,
-      max_tokens: 2500,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userMessage }
-      ]
-    });
+    raw = await callNVIDIA([
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: userMessage }
+    ], 0.75);
   } catch (err) {
     console.error('NVIDIA NIM API call failed:', err.message);
     throw err;
   }
 
-  const raw = response.choices[0].message.content;
-  
   let script;
   try {
     script = JSON.parse(raw);
   } catch (parseErr) {
     console.log('First parse failed, retrying with stricter prompt...');
-    
-    const retryResponse = await client.chat.completions.create({
-      model: 'meta/llama-3.1-70b-instruct',
-      temperature: 0.3,
-      max_tokens: 2500,
-      messages: [
+
+    try {
+      const retryRaw = await callNVIDIA([
         { role: 'system', content: SYSTEM_PROMPT + '\n\nCRITICAL: Output ONLY the raw JSON object. No markdown, no backticks, no explanation. Start with { and end with }.' },
         { role: 'user', content: userMessage }
-      ]
-    });
+      ], 0.3);
 
-    const retryRaw = retryResponse.choices[0].message.content;
-    try {
       const cleaned = retryRaw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       script = JSON.parse(cleaned);
     } catch (retryErr) {
-      console.error('Retry also failed. Raw output:', retryRaw.slice(0, 500));
+      console.error('Retry also failed. Raw output:', raw?.slice(0, 500));
       throw new Error('Failed to parse LLM output as JSON after retry');
     }
   }
