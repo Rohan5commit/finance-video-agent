@@ -37,7 +37,7 @@ export async function generateAudio(script) {
   }
 
   // Split into chunks (Kokoro handles longer text but we chunk for manageability)
-  const chunks = splitIntoChunks(fullText, 3000);
+  const chunks = splitIntoChunks(fullText, 1500);
   console.log(`  Narration split into ${chunks.length} chunks`);
 
   // Write each chunk to a temp file for the Python script
@@ -55,7 +55,7 @@ export async function generateAudio(script) {
     console.log(`  Running Kokoro TTS (voice: ${VOICE})...`);
     execSync(
       `python3 "${kokoroScript}" "${chunkDir}" "${audioOutDir}" "${VOICE}"`,
-      { stdio: 'inherit', timeout: 300000 }
+      { stdio: 'inherit', timeout: 600000 }
     );
   } catch (err) {
     console.error('Kokoro TTS failed:', err.message);
