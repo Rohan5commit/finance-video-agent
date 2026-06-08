@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, Sequence } from 'remotion';
+import { AbsoluteFill, Sequence, Composition } from 'remotion';
 import script from './script.json' assert { type: 'json' };
 import { Intro } from './compositions/Intro.jsx';
 import { NewsSection } from './compositions/NewsSection.jsx';
@@ -10,20 +10,17 @@ import { Background } from './components/Background.jsx';
 
 const TotalFrames = script.scenes.reduce((sum, s) => sum + s.durationSeconds * 30, 0);
 
-export const Root = () => {
-  return (
-    <AbsoluteFill>
-      <Composition
-        id="FinanceVideo"
-        component={FinanceVideo}
-        durationInFrames={TotalFrames}
-        fps={30}
-        width={1920}
-        height={1080}
-      />
-    </AbsoluteFill>
-  );
-};
+export const Root = () => (
+  <Composition
+    id="FinanceVideo"
+    component={FinanceVideo}
+    durationInFrames={TotalFrames}
+    fps={30}
+    width={1920}
+    height={1080}
+    defaultProps={{ script }}
+  />
+);
 
 const FinanceVideo = ({ script: s }) => {
   let frame = 0;
