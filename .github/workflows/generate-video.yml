@@ -24,8 +24,13 @@ jobs:
       - name: Install Chrome for Remotion
         uses: browser-actions/setup-chrome@v1
 
-      - name: Install ffmpeg for audio processing
-        run: sudo apt-get update -y && sudo apt-get install -y ffmpeg
+      - name: Install ffmpeg and espeak-ng for audio processing
+        run: sudo apt-get update -y && sudo apt-get install -y ffmpeg espeak-ng
+
+      - name: Install Kokoro TTS
+        run: |
+          pip install kokoro>=0.9.4 soundfile numpy
+          python3 -c "from kokoro import KPipeline; KPipeline(lang_code='a')" || echo 'Kokoro model download test'
 
       - name: Generate video
         env:
@@ -33,7 +38,7 @@ jobs:
           NVIDIA_MODEL: meta/llama-3.1-8b-instruct
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
-          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          KOKORO_VOICE: am_michael
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
