@@ -25,13 +25,18 @@ async function quote(symbol) {
 }
 
 export async function fetchMarketData() {
+  if (!API_KEY) {
+    console.error('TWELVE_DATA_API_KEY not set. Skipping market data.');
+    return { assets: [], topMovers: [], allQuotes: [] };
+  }
+
   console.log('Fetching real-time market data from Twelve Data...');
 
   const symbols = [
-    'SPX', 'IXIC', 'DJI',
+    '^GSPC', '^IXIC', '^DJI',
     'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA',
     'BTC/USD', 'ETH/USD', 'SOL/USD',
-    'GC', 'CL', 'TNX'
+    'GC', 'CL', '^TNX'
   ];
 
   // Batch in groups of 8 (free tier limit: 8/min)
@@ -51,7 +56,7 @@ export async function fetchMarketData() {
 
   // Format for the script
   const assets = valid
-    .filter(r => ['SPX', 'IXIC', 'DJI', 'BTC/USD', 'ETH/USD', 'GC', 'CL', 'TNX'].includes(r.symbol))
+    .filter(r => ['^GSPC', '^IXIC', '^DJI', 'BTC/USD', 'ETH/USD', 'GC', 'CL', '^TNX'].includes(r.symbol))
     .map(r => ({
       name: r.name,
       ticker: r.symbol,
