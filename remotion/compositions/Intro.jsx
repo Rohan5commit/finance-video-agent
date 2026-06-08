@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, interpolate, spring } from 'remotion';
+import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
 import { Background } from '../components/Background.jsx';
 import { AnimatedText } from '../components/AnimatedText.jsx';
 import { Voiceover } from '../components/Voiceover.jsx';
