@@ -50,7 +50,6 @@ export async function fetchMarketData() {
     // Crypto
     'BTC/USD', 'ETH/USD', 'SOL/USD',
     // Commodities
-    'GC',     // Gold futures
     'CL'      // Crude oil
   ];
 
@@ -71,7 +70,7 @@ export async function fetchMarketData() {
   console.log(`Got market data for ${valid.length}/${symbols.length} symbols`);
 
   // Indices/commodities/crypto for the market overview
-  const indexSymbols = ['SPY', 'QQQ', 'DIA', 'BTC/USD', 'ETH/USD', 'GC', 'CL'];
+  const indexSymbols = ['SPY', 'QQQ', 'DIA', 'BTC/USD', 'ETH/USD', 'CL'];
   const assets = valid
     .filter(r => indexSymbols.includes(r.symbol))
     .map(r => ({
