@@ -25,7 +25,8 @@ async function main() {
   console.log('script.json written');
 
   console.log('Step 4/5: Rendering video with Remotion...');
-  await import('../scripts/render.js');
+  const { default: render } = await import('../scripts/render.js');
+  await render();
   console.log('Render complete');
 
   console.log('Step 5/5: Uploading to YouTube...');
