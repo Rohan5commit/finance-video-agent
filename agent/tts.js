@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
@@ -6,65 +5,17 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = path.resolve(__dirname, '../out');
+const SCRIPTS_DIR = path.resolve(__dirname, '../scripts');
 
-const API_KEY = process.env.ELEVENLABS_API_KEY;
-const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'nPczCjzI2devNBz1zQrb'; // Brian — deep, authoritative, news narrator
-const MODEL_ID = 'eleven_multilingual_v2';
+// Kokoro TTS voice — am_michael is clear, authoritative male narrator
+const VOICE = process.env.KOKORO_VOICE || 'am_michael';
 
-async function synthesizeChunk(text, outputFile) {
-  const response = await axios.post(
-    `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
-    {
-      text,
-      model_id: MODEL_ID,
-      voice_settings: {
-        stability: 0.4,
-        similarity_boost: 0.75,
-        style: 0.55,
-        use_speaker_boost: true
-      }
-    },
-    {
-      headers: {
-        'xi-api-key': API_KEY,
-        'Content-Type': 'application/json',
-        'Accept': 'audio/mpeg'
-      },
-      responseType: 'arraybuffer',
-      timeout: 60000
-    }
-  );
-
-  fs.writeFileSync(outputFile, Buffer.from(response.data));
-
-  if (!fs.existsSync(outputFile) || fs.statSync(outputFile).size === 0) {
-    throw new Error(`ElevenLabs produced no output for: ${text.slice(0, 80)}...`);
-  }
-
-  return outputFile;
-}
-
-export async function generateAudio(script) {
-  if (!API_KEY) {
-    console.error('ELEVENLABS_API_KEY not set. Skipping TTS.');
-    return [];
-  }
-
-  console.log('Generating TTS audio with ElevenLabs...');
-  fs.mkdirSync(OUT_DIR, { recursive: true });
-
-  const audioFiles = [];
-  let fullText = '';
-  for (const scene of script.scenes) {
-    if (scene.spokenText) fullText += scene.spokenText.trim() + ' ';
-  }
-
-  // Split into chunks under 5000 chars (ElevenLabs limit)
+function splitIntoChunks(text, maxChars = 3000) {
   const chunks = [];
   let chunk = '';
-  const sentences = fullText.split(/(?<=[.!?])\s+/);
+  const sentences = text.split(/(?<=[.!?])\s+/);
   for (const sentence of sentences) {
-    if ((chunk + sentence).length > 4500 && chunk.length > 0) {
+    if ((chunk + sentence).length > maxChars && chunk.length > 0) {
       chunks.push(chunk.trim());
       chunk = sentence;
     } else {
@@ -72,31 +23,84 @@ export async function generateAudio(script) {
     }
   }
   if (chunk.trim()) chunks.push(chunk.trim());
+  return chunks;
+}
 
+export async function generateAudio(script) {
+  console.log('Generating TTS audio with Kokoro...');
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+
+  // Collect all spokenText from scenes
+  let fullText = '';
+  for (const scene of script.scenes) {
+    if (scene.spokenText) fullText += scene.spokenText.trim() + '\n\n';
+  }
+
+  // Split into chunks (Kokoro handles longer text but we chunk for manageability)
+  const chunks = splitIntoChunks(fullText, 3000);
   console.log(`  Narration split into ${chunks.length} chunks`);
 
+  // Write each chunk to a temp file for the Python script
+  const chunkDir = path.join(OUT_DIR, 'text_chunks');
+  fs.mkdirSync(chunkDir, { recursive: true });
   for (let i = 0; i < chunks.length; i++) {
-    const audioPath = path.join(OUT_DIR, `narration_${i}.mp3`);
-    console.log(`  Generating chunk ${i + 1}/${chunks.length}...`);
+    fs.writeFileSync(path.join(chunkDir, `chunk_${String(i).padStart(3, '0')}.txt`), chunks[i]);
+  }
+
+  // Run Kokoro TTS Python script
+  const kokoroScript = path.join(SCRIPTS_DIR, 'kokoro_tts.py');
+  const audioOutDir = path.join(OUT_DIR, 'kokoro_audio');
+
+  try {
+    console.log(`  Running Kokoro TTS (voice: ${VOICE})...`);
+    execSync(
+      `python3 "${kokoroScript}" "${chunkDir}" "${audioOutDir}" "${VOICE}"`,
+      { stdio: 'inherit', timeout: 300000 }
+    );
+  } catch (err) {
+    console.error('Kokoro TTS failed:', err.message);
+    throw new Error('Kokoro TTS generation failed');
+  }
+
+  // Read manifest to get generated audio files
+  const manifestPath = path.join(audioOutDir, 'manifest.json');
+  if (!fs.existsSync(manifestPath)) {
+    throw new Error('Kokoro TTS manifest not found — generation may have failed');
+  }
+
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+  const wavFiles = manifest.audio_files || [];
+
+  if (wavFiles.length === 0) {
+    throw new Error('Kokoro TTS produced no audio files');
+  }
+
+  // Convert WAV to MP3 using ffmpeg
+  const audioFiles = [];
+  for (let i = 0; i < wavFiles.length; i++) {
+    const wavPath = wavFiles[i];
+    const mp3Path = wavPath.replace('.wav', '.mp3');
     try {
-      await synthesizeChunk(chunks[i], audioPath);
-      const size = fs.statSync(audioPath).size;
-      console.log(`    ✓ ${Math.round(size / 1024)}KB`);
-      audioFiles.push(audioPath);
+      execSync(
+        `ffmpeg -i "${wavPath}" -codec:a libmp3lame -q:a 2 "${mp3Path}" -y`,
+        { stdio: 'pipe', timeout: 30000 }
+      );
+      const size = fs.statSync(mp3Path).size;
+      console.log(`    ✓ ${path.basename(mp3Path)} (${Math.round(size / 1024)}KB)`);
+      audioFiles.push(mp3Path);
     } catch (err) {
-      const status = err.response?.status;
-      const detail = err.response?.data ? Buffer.from(err.response.data).toString().slice(0, 200) : '';
-      console.error(`  TTS failed for chunk ${i}: ${status || ''} ${detail || err.message}`);
+      console.error(`  ffmpeg convert failed for ${wavPath}:`, err.message);
     }
-    // Rate limit: 1s between requests
-    if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 1000));
   }
 
-  console.log(`TTS complete: ${audioFiles.length}/${chunks.length} files`);
+  console.log(`TTS complete: ${audioFiles.length}/${wavFiles.length} MP3 files`);
 
-  if (audioFiles.length === 0 && chunks.length > 0) {
-    throw new Error('TTS failed for all chunks — check ELEVENLABS_API_KEY');
+  if (audioFiles.length === 0) {
+    throw new Error('No MP3 files produced — check ffmpeg installation');
   }
+
+  // Clean up temp text chunks
+  try { fs.rmSync(chunkDir, { recursive: true }); } catch {}
 
   return audioFiles;
 }
