@@ -2,7 +2,8 @@ name: Generate Finance Video
 
 on:
   schedule:
-    - cron: '0 10 */2 * *'
+    # Run on Monday, Tuesday, Wednesday, Friday, Sunday at 10:00 UTC
+    - cron: '0 10 * * 0,1,2,3,5'
   workflow_dispatch:
 
 jobs:
