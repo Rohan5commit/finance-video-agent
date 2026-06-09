@@ -32,7 +32,7 @@ export async function uploadToYouTube(videoPath, title, description, tags) {
 
   const yt = google.youtube({ version: 'v3', auth: oauth2 });
 
-  try {
+  async function doUpload() {
     const res = await yt.videos.insert({
       part: ['snippet', 'status'],
       requestBody: {
@@ -50,41 +50,29 @@ export async function uploadToYouTube(videoPath, title, description, tags) {
       },
       media: { body: fs.createReadStream(videoPath) }
     });
+    return `https://youtube.com/watch?v=${res.data.id}`;
+  }
 
-    const url = `https://youtube.com/watch?v=${res.data.id}`;
+  try {
+    const url = await doUpload();
     console.log('Uploaded to YouTube:', url);
     return url;
   } catch (err) {
     // If token is invalid/expired, try once more after explicit refresh
-    if (err.code === 401 || err.code === 403 ||
-        (err.message && err.message.includes('invalid_grant')) ||
-        (err.message && err.message.includes('Token has been expired')) ||
-        (err.message && err.message.includes(' unauthorized'))) {
+    const status = err.response?.status || err.code;
+    const msg = err.message || '';
+    const isAuthError = status === 401 || status === 403 ||
+      msg.includes('invalid_grant') ||
+      msg.includes('Token has been expired') ||
+      msg.includes('unauthorized');
+
+    if (isAuthError) {
       console.warn('YouTube upload failed with auth error, attempting token refresh...');
       try {
         const { credentials } = await oauth2.refreshAccessToken();
         oauth2.setCredentials(credentials);
         console.log('Token refreshed successfully, retrying upload...');
-
-        const res = await yt.videos.insert({
-          part: ['snippet', 'status'],
-          requestBody: {
-            snippet: {
-              title,
-              description,
-              tags,
-              categoryId: '27',
-              defaultLanguage: 'en'
-            },
-            status: {
-              privacyStatus: 'public',
-              selfDeclaredMadeForKids: false
-            }
-          },
-          media: { body: fs.createReadStream(videoPath) }
-        });
-
-        const url = `https://youtube.com/watch?v=${res.data.id}`;
+        const url = await doUpload();
         console.log('Uploaded to YouTube (after retry):', url);
         return url;
       } catch (retryErr) {
