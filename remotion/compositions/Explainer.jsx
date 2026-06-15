@@ -6,67 +6,92 @@ import { Voiceover } from '../components/Voiceover.jsx';
 export const Explainer = ({ scene }) => {
   const frame = useCurrentFrame();
   
-  const lines = scene.spokenText ? scene.spokenText.split('. ').filter(Boolean) : [];
+  const titleOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: 'clamp' });
+  const titleSlide = interpolate(frame, [0, 20], [-30, 0], { extrapolateRight: 'clamp' });
+
+  const bullets = scene.bullets || [];
 
   return (
     <AbsoluteFill>
       <Background />
-      
+
+      {scene.spokenText && <Voiceover text={scene.spokenText} startFrame={0} />}
+
+      {/* Scene label */}
       <div
         style={{
           position: 'absolute',
-          top: 120,
+          top: 100,
           left: 120,
-          width: 800,
+          opacity: titleOpacity,
+        }}
+      >
+        <span
+          style={{
+            color: '#00d4ff',
+            fontSize: 16,
+            fontFamily: 'Arial, sans-serif',
+            fontWeight: 700,
+            letterSpacing: 3,
+            textTransform: 'uppercase',
+          }}
+        >
+          EXPLAINER
+        </span>
+      </div>
+
+      {/* Title */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 140,
+          left: 120,
+          right: 120,
+          opacity: titleOpacity,
+          transform: `translateY(${titleSlide}px)`,
         }}
       >
         <h1
           style={{
             color: '#ffffff',
-            fontSize: 42,
+            fontSize: 48,
             fontFamily: 'Arial, sans-serif',
-            fontWeight: 700,
+            fontWeight: 800,
             margin: 0,
-            marginBottom: 40,
-            lineHeight: 1.2,
+            lineHeight: 1.15,
           }}
         >
           {scene.title}
         </h1>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {lines.map((line, i) => {
-            const opacity = interpolate(frame, [i * 10, i * 10 + 15], [0, 1], { extrapolateRight: 'clamp' });
-            return (
-              <p
-                key={i}
-                style={{
-                  color: '#ccd6f6',
-                  fontSize: 24,
-                  fontFamily: 'Arial, sans-serif',
-                  fontWeight: 400,
-                  lineHeight: 1.6,
-                  margin: 0,
-                  opacity,
-                }}
-              >
-                {line}.
-              </p>
-            );
-          })}
-        </div>
       </div>
 
+      {/* Divider line */}
       <div
         style={{
           position: 'absolute',
-          top: 120,
+          top: 260,
+          left: 120,
+          width: interpolate(frame, [20, 50], [0, 400], { extrapolateRight: 'clamp' }),
+          height: 3,
+          background: 'linear-gradient(90deg, #00d4ff, transparent)',
+          borderRadius: 2,
+        }}
+      />
+
+      {/* Bullets - primary visual content */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 300,
+          left: 120,
           right: 120,
-          width: 700,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 24,
         }}
       >
-        {(scene.bullets || []).map((bullet, i) => {
-          const bulletFrame = i * 40;
+        {bullets.map((bullet, i) => {
+          const bulletFrame = 30 + i * 30;
           const opacity = interpolate(frame, [bulletFrame, bulletFrame + 15], [0, 1], { extrapolateRight: 'clamp' });
           const xOffset = interpolate(frame, [bulletFrame, bulletFrame + 15], [-20, 0], { extrapolateRight: 'clamp' });
           return (
@@ -75,15 +100,36 @@ export const Explainer = ({ scene }) => {
               style={{
                 display: 'flex',
                 alignItems: 'flex-start',
-                gap: 16,
-                marginBottom: 28,
+                gap: 18,
                 opacity,
                 transform: `translateX(${xOffset}px)`,
               }}
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" style={{ marginTop: 6, flexShrink: 0 }}>
-                <polygon points="0,10 15,3 15,17" fill="#00d4ff" />
-              </svg>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  background: 'rgba(0, 212, 255, 0.15)',
+                  border: '1px solid rgba(0, 212, 255, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  marginTop: 2,
+                }}
+              >
+                <span
+                  style={{
+                    color: '#00d4ff',
+                    fontSize: 16,
+                    fontFamily: 'Arial, sans-serif',
+                    fontWeight: 700,
+                  }}
+                >
+                  {i + 1}
+                </span>
+              </div>
               <span
                 style={{
                   color: '#e6f1ff',
@@ -99,8 +145,6 @@ export const Explainer = ({ scene }) => {
           );
         })}
       </div>
-
-      {scene.spokenText && <Voiceover text={scene.spokenText} startFrame={0} />}
     </AbsoluteFill>
   );
 };

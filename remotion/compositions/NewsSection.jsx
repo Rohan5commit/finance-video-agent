@@ -7,79 +7,102 @@ import { Chart } from '../components/Chart.jsx';
 export const NewsSection = ({ scene }) => {
   const frame = useCurrentFrame();
   
-  const keyFactSlide = interpolate(frame, [90, 110], [-400, 0], { extrapolateRight: 'clamp' });
-  const lines = scene.spokenText ? scene.spokenText.split('. ').filter(Boolean) : [];
+  const titleOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: 'clamp' });
+  const titleSlide = interpolate(frame, [0, 20], [-30, 0], { extrapolateRight: 'clamp' });
+  const factSlide = interpolate(frame, [30, 55], [600, 0], { extrapolateRight: 'clamp' });
+  const factOpacity = interpolate(frame, [30, 55], [0, 1], { extrapolateRight: 'clamp' });
+  const chartOpacity = interpolate(frame, [60, 80], [0, 1], { extrapolateRight: 'clamp' });
 
   return (
     <AbsoluteFill>
       <Background />
-      
+
+      {scene.spokenText && <Voiceover text={scene.spokenText} startFrame={0} />}
+
+      {/* Scene label */}
       <div
         style={{
           position: 'absolute',
-          top: 120,
+          top: 100,
           left: 120,
-          width: 1100,
+          opacity: titleOpacity,
+        }}
+      >
+        <span
+          style={{
+            color: '#f5a623',
+            fontSize: 16,
+            fontFamily: 'Arial, sans-serif',
+            fontWeight: 700,
+            letterSpacing: 3,
+            textTransform: 'uppercase',
+          }}
+        >
+          {scene.ticker && scene.ticker !== 'null' ? scene.ticker : 'STORY'}
+        </span>
+      </div>
+
+      {/* Title */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 140,
+          left: 120,
+          right: 120,
+          opacity: titleOpacity,
+          transform: `translateY(${titleSlide}px)`,
         }}
       >
         <h1
           style={{
             color: '#ffffff',
-            fontSize: 42,
+            fontSize: 52,
             fontFamily: 'Arial, sans-serif',
-            fontWeight: 700,
+            fontWeight: 800,
             margin: 0,
-            marginBottom: 40,
-            lineHeight: 1.2,
+            lineHeight: 1.15,
           }}
         >
           {scene.title}
         </h1>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {lines.map((line, i) => {
-            const lineFrame = i * 60;
-            const opacity = interpolate(frame, [lineFrame, lineFrame + 15], [0, 1], { extrapolateRight: 'clamp' });
-            return (
-              <p
-                key={i}
-                style={{
-                  color: '#ccd6f6',
-                  fontSize: 24,
-                  fontFamily: 'Arial, sans-serif',
-                  fontWeight: 400,
-                  lineHeight: 1.6,
-                  margin: 0,
-                  opacity,
-                }}
-              >
-                {line}.
-              </p>
-            );
-          })}
-        </div>
       </div>
 
+      {/* Key fact panel */}
       {scene.keyFact && (
         <div
           style={{
             position: 'absolute',
-            top: 440,
-            right: 0,
-            width: 500,
-            background: '#f5a623',
-            padding: '30px 40px',
-            borderTopLeftRadius: 8,
-            borderBottomLeftRadius: 8,
-            transform: `translateX(${keyFactSlide}px)`,
+            top: 340,
+            left: 120,
+            right: 120,
+            background: 'rgba(245, 166, 35, 0.12)',
+            border: '1px solid rgba(245, 166, 35, 0.3)',
+            borderRadius: 12,
+            padding: '28px 36px',
+            opacity: factOpacity,
+            transform: `translateX(${factSlide}px)`,
           }}
         >
-          <p
+          <span
             style={{
-              color: '#0a0e1a',
-              fontSize: 22,
+              color: '#f5a623',
+              fontSize: 14,
               fontFamily: 'Arial, sans-serif',
               fontWeight: 700,
+              letterSpacing: 2,
+              textTransform: 'uppercase',
+              display: 'block',
+              marginBottom: 10,
+            }}
+          >
+            KEY FACT
+          </span>
+          <p
+            style={{
+              color: '#ffffff',
+              fontSize: 28,
+              fontFamily: 'Arial, sans-serif',
+              fontWeight: 600,
               margin: 0,
               lineHeight: 1.4,
             }}
@@ -89,22 +112,62 @@ export const NewsSection = ({ scene }) => {
         </div>
       )}
 
-      {scene.ticker && scene.ticker !== 'null' && scene.chartData && scene.chartData.length > 0 && (
+      {/* Chart */}
+      {scene.chartData && scene.chartData.length > 0 && (
         <div
           style={{
             position: 'absolute',
-            top: 650,
+            bottom: 140,
             right: 120,
+            opacity: chartOpacity,
           }}
         >
-          <Chart
-            data={scene.chartData}
-            startFrame={frame}
-          />
+          <Chart data={scene.chartData} startFrame={Math.max(0, frame - 60)} />
         </div>
       )}
 
-      {scene.spokenText && <Voiceover text={scene.spokenText} startFrame={0} />}
+      {/* Ticker badge */}
+      {scene.ticker && scene.ticker !== 'null' && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 60,
+            left: 120,
+            opacity: chartOpacity,
+          }}
+        >
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 10,
+              background: 'rgba(0, 212, 255, 0.1)',
+              border: '1px solid rgba(0, 212, 255, 0.3)',
+              borderRadius: 8,
+              padding: '8px 18px',
+            }}
+          >
+            <div
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: '#00d4ff',
+              }}
+            />
+            <span
+              style={{
+                color: '#00d4ff',
+                fontSize: 18,
+                fontFamily: 'Arial, sans-serif',
+                fontWeight: 700,
+              }}
+            >
+              {scene.ticker}
+            </span>
+          </div>
+        </div>
+      )}
     </AbsoluteFill>
   );
 };
