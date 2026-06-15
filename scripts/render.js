@@ -23,7 +23,11 @@ export default async function render() {
 
   let comp;
   try {
-    comp = await selectComposition({ serveUrl: bundled, id: 'FinanceVideo', inputProps: { script } });
+    comp = await selectComposition({
+      serveUrl: bundled,
+      id: 'FinanceVideo',
+      inputProps: { script },
+    });
   } catch (err) {
     console.error('Failed to select composition:', err.message);
     throw err;

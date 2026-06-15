@@ -6,11 +6,19 @@ import { Explainer } from './compositions/Explainer.jsx';
 import { MarketSnapshot } from './compositions/MarketSnapshot.jsx';
 import { Outro } from './compositions/Outro.jsx';
 
-const FinanceVideo = ({ script: s }) => {
+const FinanceVideo = ({ script }) => {
+  if (!script || !script.scenes) {
+    return (
+      <AbsoluteFill style={{ backgroundColor: '#0a0e1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: '#ff4444', fontSize: 48 }}>No script data</div>
+      </AbsoluteFill>
+    );
+  }
+
   let frame = 0;
   return (
     <AbsoluteFill style={{ backgroundColor: '#0a0e1a' }}>
-      {(s.scenes || []).map((scene) => {
+      {(script.scenes || []).map((scene) => {
         const durationInFrames = (scene.durationSeconds || 30) * 30;
         const from = frame;
         frame += durationInFrames;
@@ -24,27 +32,16 @@ const FinanceVideo = ({ script: s }) => {
   );
 };
 
-export const RemotionRoot = ({ script }) => {
-  if (!script || !script.scenes || !Array.isArray(script.scenes) || script.scenes.length === 0) {
-    throw new Error('script prop is missing or has no scenes');
-  }
-
-  const TotalFrames = script.scenes.reduce(
-    (sum, s) => sum + (s.durationSeconds || 30) * 30, 0
-  );
-
-  return (
-    <Composition
-      id="FinanceVideo"
-      component={FinanceVideo}
-      durationInFrames={TotalFrames}
-      fps={30}
-      width={1920}
-      height={1080}
-      defaultProps={{ script }}
-    />
-  );
-};
+export const RemotionRoot = () => (
+  <Composition
+    id="FinanceVideo"
+    component={FinanceVideo}
+    durationInFrames={30 * 60}
+    fps={30}
+    width={1920}
+    height={1080}
+  />
+);
 
 const SceneComponent = ({ scene }) => {
   switch (scene.type) {
