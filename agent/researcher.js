@@ -180,10 +180,8 @@ export async function fetchFinanceNews(minStories = 5) {
   // ── Keyword searches (5 requests) ──
   const queries = [
     'stock market S&P 500 NASDAQ Dow Jones',
-    'Bitcoin cryptocurrency crypto ETF',
-    'Federal Reserve interest rates inflation economy',
-    'NVIDIA Apple Tesla tech stocks earnings',
-    'oil gold commodities Wall Street banking',
+    'Bitcoin cryptocurrency crypto',
+    'NVIDIA Apple Tesla tech stocks',
   ];
 
   for (const q of queries) {

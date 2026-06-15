@@ -25,7 +25,7 @@ async function main() {
 
   // Step 1/8: Fetch news (55 searches)
   console.log('Step 1/8: Fetching finance news...');
-  const stories = await fetchFinanceNews();
+  const stories = await fetchFinanceNews(3);
   console.log(`Got ${stories.length} stories`);
 
   // Step 2/8: Fetch market data
