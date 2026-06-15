@@ -1,12 +1,14 @@
 import React from 'react';
-import { AbsoluteFill, Sequence, Composition } from 'remotion';
+import { AbsoluteFill, Sequence, Composition, getInputProps } from 'remotion';
 import { Intro } from './compositions/Intro.jsx';
 import { NewsSection } from './compositions/NewsSection.jsx';
 import { Explainer } from './compositions/Explainer.jsx';
 import { MarketSnapshot } from './compositions/MarketSnapshot.jsx';
 import { Outro } from './compositions/Outro.jsx';
 
-const FinanceVideo = ({ script }) => {
+const { script } = getInputProps();
+
+const FinanceVideo = () => {
   if (!script || !script.scenes) {
     return (
       <AbsoluteFill style={{ backgroundColor: '#0a0e1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -32,11 +34,15 @@ const FinanceVideo = ({ script }) => {
   );
 };
 
+const TotalFrames = script
+  ? script.scenes.reduce((sum, s) => sum + (s.durationSeconds || 30) * 30, 0)
+  : 30 * 60;
+
 export const RemotionRoot = () => (
   <Composition
     id="FinanceVideo"
     component={FinanceVideo}
-    durationInFrames={30 * 60}
+    durationInFrames={TotalFrames}
     fps={30}
     width={1920}
     height={1080}
