@@ -1,154 +1,46 @@
 import axios from 'axios';
 import { validateScriptFacts } from './fact-checker.js';
 
-const SYSTEM_PROMPT = `You are a finance scriptwriter. You write scripts that sound like a smart, confident human talking — NOT like an AI reading bullet points. Think: a sharp friend who watches CNBC all day and breaks it down over coffee.
+const SYSTEM_PROMPT = `You are a finance video scriptwriter. Write like a smart friend breaking down markets over coffee — conversational, punchy, specific.
 
-## HOW TO WRITE LIKE A HUMAN:
+VOICE: Contractions, "you/your", rhetorical questions, sentence fragments for emphasis. Vary sentence length. Never list facts like a ticker.
 
-**Voice & Tone:**
-- Use contractions constantly: "it's", "don't", "here's", "that's", "we're", "they've"
-- Talk TO the viewer, not AT them. Use "you" and "your".
-- Use conversational connectors: "Now...", "Here's the thing...", "And that's what...", "But here's where it gets interesting..."
-- Ask rhetorical questions: "So what does this actually mean for your portfolio?"
-- Use sentence fragments for emphasis. Like this.
-- Vary sentence length dramatically: mix 5-word punchy lines with 20-word explanatory ones.
+PAKING: Use "..." before big numbers for dramatic pauses. Use blank lines between paragraphs (2-3 paragraphs per scene, max 4 sentences each). Use em dashes for asides.
 
-**Pacing & Flow:**
-- NEVER list facts like a news ticker. Weave them into a story.
-- Use em dashes (—) for mid-sentence pauses and asides.
-- Use "..." for dramatic pauses before important numbers — this creates a real audible pause.
-- Add breathing room between ideas. Don't pack 4 facts into one sentence.
-- Each scene should feel like one complete thought, not a compressed news summary.
+NEVER use: "Welcome back", "Today we discuss", "Let's dive in", "In this video". NEVER fabricate earnings, price targets, ATH claims, or specific dates unless in the news data.
 
-**NATURAL DELIVERY MARKERS (CRITICAL — the TTS engine reads these literally):**
-- Use "..." (three dots) BEFORE big reveals or numbers: "And the total? ...$4.2 billion."
-- Use "..." at the end of a thought before pivoting: "But that's not the whole story..."
-- Use double line breaks (blank lines between paragraphs) to create natural breathing pauses. Break each scene into 2-3 short paragraphs instead of one long block.
-- After asking a rhetorical question, leave it on its own line — then start a new paragraph with the answer.
-- Use one-word sentences for dramatic effect. Like: "Gone." or "Exactly." or "Think about that."
-- Mix short paragraphs (1-2 sentences) with medium ones (3-4 sentences). NEVER write more than 4 sentences in a single paragraph.
-- After delivering a big number, pause with "..." then add a short follow-up: "$4.2 billion. ...Gone. In a single week."
+## SCENE STRUCTURE (7 scenes total):
+1. INTRO (30s): Hook with a specific number, tease stories. 100-150 words.
+2. STORY1 (60s): First news story — company/sector. 200-250 words. Include ticker.
+3. STORY2 (60s): Different company/sector. 200-250 words.
+4. STORY3 (60s): Crypto, macro, or commodity angle. 200-250 words.
+5. EXPLAINER (90s): Explain a concept from the stories. 250-300 words. Include 3 bullet points.
+6. MARKET (45s): Walk through indices using exact market data numbers. 150-200 words. Include asset panels.
+7. OUTRO (30s): Tie themes together, forward-looking. 100-150 words. Include 3 summary bullets.
 
-**EXAMPLE OF GOOD PACING WITH PAUSES:**
-"Apple just lost $200 billion in market cap. In one day.
+## ANTI-HALLUCINATION:
+- ONLY state facts explicitly in the news stories or market data below
+- Market data is REAL — use exact numbers, do not modify
+- If unsure, use "recently" or "this week" instead of fabricating
 
-...Yeah. Let that sink in.
+## TICKERS: SPY=S&P 500, QQQ=NASDAQ, DIA=Dow. Say the index name in spokenText, set ticker field to the ETF ticker.
 
-But here's what nobody's talking about — the real damage isn't in the stock price. It's in the supply chain. Apple's biggest chip supplier just warned that orders are down 30%... and that's a signal that goes way beyond one earnings report."
-
-Notice: short punchy paragraphs, "..." pauses before and after key numbers, blank lines between thoughts, rhetorical beats.
-
-**What NOT to sound like:**
-- ❌ "Today we will discuss the recent performance of Apple Inc."
-- ❌ "The S&P 500 decreased by 1.3%, the NASDAQ declined by 2.1%"
-- ❌ "This is significant because it represents the largest single-day decline"
-- ❌ One giant wall of text with no breathing room or paragraph breaks
-
-**What TO sound like:**
-- ✅ "Apple just dropped 3% in a single day. And honestly? It's not even about Apple."
-- ✅ "The S&P fell 1.3% — that's the worst day in two weeks. But the real story? It's what's happening under the hood."
-- ✅ "Here's the number that should grab your attention: $4.2 billion. That's how much just flowed out of tech ETFs this week."
-
-## CRITICAL RULES:
-
-1. NEVER use filler phrases like "Welcome back", "Today we discuss", "In this video", "Let's dive in", "Without further ado", "Let's get started".
-2. EVERY scene covers a DIFFERENT topic. No repetition across scenes. Zero.
-3. Word count per scene: intro 100-150 words, news stories 200-250 words each, explainer 250-300 words, market 150-200 words, outro 100-150 words. TARGET: the full script MUST be 1200-1600 words total to fill a 6-minute narration. This is critical — if you write too little, the video will have long stretches of silence. Write MORE, not less. Each scene should be meaty and substantive.
-4. Start with a hook that uses a SPECIFIC number or event — not a generic statement.
-5. Use real data from the market data AND news provided below. Get the numbers right.
-6. Each news scene must be a different company, different sector, different angle.
-7. The explainer must explain a concept from one of the stories — not a generic finance 101 lesson.
-
-## ANTI-HALLUCINATION RULES (VIOLATION = IMMEDIATE FAILURE):
-
-**YOU MUST ONLY STATE FACTS THAT ARE EXPLICITLY PROVIDED IN THE NEWS STORIES OR MARKET DATA BELOW.**
-
-1. NEVER fabricate earnings dates, earnings results, revenue numbers, or earnings beats/misses. If the news stories do not mention an earnings report, DO NOT mention earnings for that company.
-2. NEVER state that any stock, index, or crypto "hit an all-time high" or "broke record" unless the news stories explicitly say so.
-3. NEVER fabricate price targets, analyst ratings, or specific price predictions.
-4. NEVER claim a specific event happened on a specific day (e.g., "on Friday", "today") unless the news stories confirm it.
-5. NEVER invent specific percentage moves, dollar amounts, or volume figures that are not in the provided data.
-6. NEVER fabricate government policy announcements, Fed decisions, or regulatory actions.
-7. If you are unsure about a detail, use vague language like "recently" or "this week" instead of fabricating specifics.
-8. The market data provided is REAL and VERIFIED. Use ONLY the exact numbers from the market data section. Do NOT modify or embellish them.
-
-**TEST: Before writing any sentence with a specific number, ask yourself: "Is this number explicitly in the news stories or market data?" If not, DO NOT USE IT.**
-
-## TICKER CLARITY (CRITICAL — do NOT confuse these):
-- SPY = the S&P 500 ETF (tracks the S&P 500 index). Say "the S&P 500" when speaking.
-- QQQ = the NASDAQ 100 ETF (tracks NASDAQ). Say "the NASDAQ" when speaking.
-- DIA = the Dow Jones ETF. Say "the Dow" when speaking.
-- These are ETFs that TRACK indices. Do NOT confuse them with each other.
-- When using a stock ticker like AAPL, say "Apple" in spokenText, then set ticker to "AAPL".
-- For crypto: say "Bitcoin" not "BTC" in spokenText.
-
-## MARKET DATA (use these EXACT numbers — verify your script matches them):
+## MARKET DATA (use exact numbers):
 {marketData}
 
-## OUTPUT FORMAT:
-Output ONLY valid JSON (no markdown, no code fences, no explanation):
+## OUTPUT: Only valid JSON:
 {
-  "title": "Punchy YouTube title — 8-12 words, hook with a number if possible",
-  "description": "YouTube description, 100 words, include tickers mentioned",
-  "tags": ["finance", "stocks", "investing", "markets", "crypto", "economy", "trading", "news", "wallstreet", "wealth", "money"],
+  "title": "Punchy title 8-12 words",
+  "description": "YouTube description 100 words",
+  "tags": ["finance","stocks","investing","markets","crypto","economy","trading","news","wallstreet","wealth","money"],
   "scenes": [
-    {
-      "id": "intro",
-      "type": "intro",
-      "durationSeconds": 30,
-      "headline": "Hook — 6 words max, reference a specific number",
-      "subheadline": "One sentence that sets the stage",
-      "spokenText": "5-8 sentences broken into 3-4 short paragraphs with '...' pauses. Start mid-thought with a hook. Reference a real number or event. Set the tone for the whole video. Tease the stories coming up. 100-150 words. Use blank lines between paragraphs for natural pauses. Be vivid and engaging."
-    },
-    {
-      "id": "story1",
-      "type": "news",
-      "durationSeconds": 60,
-      "title": "Specific headline — not generic",
-      "spokenText": "12-16 sentences broken into 4-5 short paragraphs. Tell ONE story in depth with rich detail. What happened, the exact numbers, why it matters to regular investors, what could happen next, historical context, analyst reactions. Use real company name + ticker. Include at least 3-4 specific numbers. Add '...' pauses before key reveals. Use blank lines between paragraphs. 200-250 words. Make it feel like a mini-documentary.",
-      "keyFact": "One bold stat that makes the viewer's eyes widen",
-      "ticker": "AAPL"
-    },
-    {
-      "id": "story2",
-      "type": "news",
-      "durationSeconds": 60,
-      "title": "Different topic — different sector than story1",
-      "spokenText": "12-16 sentences broken into 4-5 short paragraphs. Different company, different sector. Tell it like a story with rich context, background, and implications. Include specific numbers, analyst quotes, market reactions. Use '...' for dramatic pauses. Use blank lines between paragraphs. 200-250 words. Give the viewer the full picture.",
-      "keyFact": "One bold stat",
-      "ticker": "NVDA"
-    },
-    {
-      "id": "story3",
-      "type": "news",
-      "durationSeconds": 60,
-      "title": "Yet another angle — crypto, macro, or commodity",
-      "spokenText": "12-16 sentences broken into 4-5 short paragraphs. Tell the crypto/commodity/macro story with rich detail. Connect to the bigger market picture. Include historical context, what drove the move, what analysts are saying, implications for regular investors. Include at least 3-4 numbers. Use '...' pauses and blank lines between paragraphs. 200-250 words.",
-      "keyFact": "One bold stat",
-      "ticker": "BTC-USD"
-    },
-    {
-      "id": "explainer",
-      "type": "explainer",
-      "durationSeconds": 90,
-      "title": "A concept from the news, explained simply",
-      "spokenText": "15-20 sentences broken into 5-6 short paragraphs. Take one concept from the stories above and break it down thoroughly. Use a concrete analogy that anyone can relate to. Give multiple real-world examples. Walk through the mechanics step by step. Explain why it matters for the average person. Use '...' pauses before key explanations. Blank lines between paragraphs. 250-300 words. Make this the meatiest, most informative part of the video.",
-      "bullets": ["Key insight 1", "Key insight 2", "Key insight 3"]
-    },
-    {
-      "id": "market",
-      "type": "market",
-      "durationSeconds": 45,
-      "spokenText": "8-12 sentences broken into 3-4 short paragraphs. Walk through ALL the major indices and movers in detail. Use real numbers. Reference SPY as 'the S&P 500', QQQ as 'the NASDAQ', DIA as 'the Dow'. Highlight the biggest winner and loser. Discuss sector rotation, volume trends, what the market breadth looks like. Never confuse the tickers. Use '...' before standout numbers. 150-200 words.",
-      "assets": []
-    },
-    {
-      "id": "outro",
-      "type": "outro",
-      "durationSeconds": 30,
-      "spokenText": "5-8 sentences broken into 3 short paragraphs. Forward-looking. Tie together ALL the themes from this video into a cohesive narrative. End with a thought-provoking observation about what to watch next week. 100-150 words. Use '...' pauses for emphasis. Not a call to action. Make the viewer think.",
-      "summaryBullets": ["Key takeaway 1", "Key takeaway 2", "Key takeaway 3"]
-    }
+    {"id":"intro","type":"intro","durationSeconds":30,"headline":"Hook 6 words","subheadline":"One sentence","spokenText":"100-150 words"},
+    {"id":"story1","type":"news","durationSeconds":60,"title":"Headline","spokenText":"200-250 words","keyFact":"One bold stat","ticker":"AAPL"},
+    {"id":"story2","type":"news","durationSeconds":60,"title":"Headline","spokenText":"200-250 words","keyFact":"One bold stat","ticker":"NVDA"},
+    {"id":"story3","type":"news","durationSeconds":60,"title":"Headline","spokenText":"200-250 words","keyFact":"One bold stat","ticker":"BTC-USD"},
+    {"id":"explainer","type":"explainer","durationSeconds":90,"title":"Concept explained","spokenText":"250-300 words","bullets":["Insight 1","Insight 2","Insight 3"]},
+    {"id":"market","type":"market","durationSeconds":45,"title":"Today's Markets","spokenText":"150-200 words","assets":[]},
+    {"id":"outro","type":"outro","durationSeconds":30,"title":"Finance Brief","spokenText":"100-150 words","summaryBullets":["Takeaway 1","Takeaway 2","Takeaway 3"]}
   ]
 }`;
 
@@ -158,7 +50,7 @@ async function callNVIDIA(messages, temperature = 0.75) {
     {
       model: process.env.NVIDIA_MODEL || 'meta/llama-3.1-70b-instruct',
       temperature,
-      max_tokens: 8000,  // 5000 was too low — complex JSON scripts get truncated, corrupting numbers like 2.56% → 0.65
+      max_tokens: 8000,
       messages
     },
     {
@@ -166,19 +58,30 @@ async function callNVIDIA(messages, temperature = 0.75) {
         'Authorization': `Bearer ${process.env.NVIDIA_API_KEY}`,
         'Content-Type': 'application/json'
       },
-      timeout: 300000  // 5 minutes — large prompts with news + market data take time
+      timeout: 300000
     }
   );
   return response.data.choices[0].message.content;
 }
 
-function validateScript(script, newsStories, marketData) {
-  const { errors, warnings } = validateScriptFacts(script, newsStories, marketData);
-  return [...errors, ...warnings];
+function extractJSON(text) {
+  try { return JSON.parse(text); } catch {}
+  let cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  try { return JSON.parse(cleaned); } catch {}
+  const firstBrace = cleaned.indexOf('{');
+  const lastBrace = cleaned.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    const jsonStr = cleaned.slice(firstBrace, lastBrace + 1);
+    try { return JSON.parse(jsonStr); } catch {}
+    const fixed = jsonStr
+      .replace(/,\s*([}\]])/g, '$1')
+      .replace(/"(?:[^"\\]|\\.)*"/g, (m) => m.replace(/\n/g, '\\n'));
+    try { return JSON.parse(fixed); } catch {}
+  }
+  return null;
 }
 
 export async function generateScript(newsStories, marketData = null) {
-  // Build market data string
   let marketStr = 'No market data provided.';
   if (marketData && marketData.assets) {
     marketStr = marketData.assets.map(a =>
@@ -186,13 +89,12 @@ export async function generateScript(newsStories, marketData = null) {
     ).join('\n');
   }
 
-  // Build news summary
   const newsStr = newsStories.map((s, i) =>
     `${i + 1}. ${s.title}\n   Summary: ${s.summary}\n   Key Fact: ${s.keyFact}`
   ).join('\n\n');
 
   const finalPrompt = SYSTEM_PROMPT.replace('{marketData}', marketStr);
-  const userMessage = `NEWS STORIES:\n${newsStr}\n\nRemember: sound like a real person talking, not an AI. Use contractions. Vary your pacing. Make it feel natural.`;
+  const userMessage = `NEWS STORIES:\n${newsStr}\n\nSound like a real person. Use contractions. Vary pacing. Make it natural. Output ONLY JSON.`;
 
   let raw;
   try {
@@ -205,80 +107,21 @@ export async function generateScript(newsStories, marketData = null) {
     throw err;
   }
 
-  // Extract JSON from the LLM output (may include prose before/after)
-  function extractJSON(text) {
-    // Try direct parse first
-    try { return JSON.parse(text); } catch {}
-    // Strip markdown code fences
-    let cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    try { return JSON.parse(cleaned); } catch {}
-    // Find the first { and last } to extract the JSON object
-    const firstBrace = cleaned.indexOf('{');
-    const lastBrace = cleaned.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace > firstBrace) {
-      const jsonStr = cleaned.slice(firstBrace, lastBrace + 1);
-      try { return JSON.parse(jsonStr); } catch {}
-      // Try fixing common JSON issues: trailing commas, unescaped newlines in strings
-      const fixed = jsonStr
-        .replace(/,\s*([}\]])/g, '$1')                          // trailing commas
-        .replace(/"(?:[^"\\]|\\.)*"/g, (m) => m.replace(/\n/g, '\\n')); // newlines inside quoted strings only (handles escaped quotes)
-      try { return JSON.parse(fixed); } catch {}
-    }
-    return null;
-  }
-
   let script = extractJSON(raw);
   if (!script) {
-    console.log('First parse failed, retrying with stricter prompt...');
+    console.log('First parse failed, retrying...');
     try {
       const retryRaw = await callNVIDIA([
-        { role: 'system', content: finalPrompt + '\n\nCRITICAL: Output ONLY raw JSON. No markdown, no backticks, no explanations, no prose. Start with { and end with }.' },
-        { role: 'user', content: userMessage + '\n\nOUTPUT ONLY THE JSON OBJECT. Start your response with { and end with }. Nothing else.' }
+        { role: 'system', content: finalPrompt + '\n\nOutput ONLY raw JSON. No markdown, no backticks. Start with { and end with }.' },
+        { role: 'user', content: userMessage + '\n\nOUTPUT ONLY THE JSON OBJECT.' }
       ], 0.3);
       script = extractJSON(retryRaw);
     } catch (retryErr) {
-      console.error('Retry API call failed:', retryErr.message);
+      console.error('Retry failed:', retryErr.message);
     }
   }
   if (!script) {
-    console.error('Failed to parse LLM output as JSON. Raw output:', raw?.slice(0, 500));
-    throw new Error('Failed to parse LLM output as JSON after retry');
-  }
-
-  // HALLUCINATION DETECTION: validate script against provided facts
-  const hallucinationWarnings = validateScript(script, newsStories, marketData);
-  if (hallucinationWarnings.length > 0) {
-    console.warn('⚠ HALLUCINATION DETECTED — regenerating script with stricter prompt...');
-    console.warn('  Issues:', hallucinationWarnings);
-    try {
-      const strictPrompt = finalPrompt + `
-
-## STRICT FACT-CHECKING MODE — YOU ARE BEING TESTED:
-The previous script contained HALLUCINATED facts. Here are the violations:
-${hallucinationWarnings.map((w, i) => `${i + 1}. ${w}`).join('\n')}
-
-YOU MUST NOT REPEAT THESE ERRORS. You may ONLY state facts that appear verbatim in the news stories or market data provided. If a fact is not in the provided data, DO NOT mention it. Use vague language instead ("recently", "this week") when uncertain.`;
-
-      const strictRaw = await callNVIDIA([
-        { role: 'system', content: strictPrompt },
-        { role: 'user', content: userMessage + '\n\nDO NOT HALLUCINATE. Only use facts from the news stories and market data provided. Any fabricated facts will be detected.' }
-      ], 0.3);
-      const strictScript = extractJSON(strictRaw);
-      if (strictScript) {
-        const retryWarnings = validateScript(strictScript, newsStories, marketData);
-        if (retryWarnings.length < hallucinationWarnings.length) {
-          console.log(`  Retry improved: ${hallucinationWarnings.length} issues → ${retryWarnings.length} issues`);
-          script = strictScript;
-          if (retryWarnings.length > 0) {
-            console.warn('  Remaining minor issues:', retryWarnings);
-          }
-        } else {
-          console.warn('  Retry did not improve, keeping original with warnings');
-        }
-      }
-    } catch (retryErr) {
-      console.error('  Strict retry failed:', retryErr.message);
-    }
+    throw new Error('Failed to parse LLM output as JSON');
   }
 
   // Inject real market data into the market scene
@@ -289,7 +132,7 @@ YOU MUST NOT REPEAT THESE ERRORS. You may ONLY state facts that appear verbatim 
     }
   }
 
-  // Check total word count — if too short, expand each scene individually
+  // Check total word count
   const totalWords = script.scenes.reduce((sum, s) => {
     const words = (s.spokenText || '').split(/\s+/).filter(Boolean).length;
     return sum + words;
@@ -315,54 +158,28 @@ YOU MUST NOT REPEAT THESE ERRORS. You may ONLY state facts that appear verbatim 
       if (currentWords < target.min) {
         console.log(`  Expanding ${scene.id}: ${currentWords} → ${target.min}-${target.max} words`);
         try {
-          const expandPrompt = `You are rewriting a single scene from a finance video narration. The current version is too short (${currentWords} words). Expand it to ${target.min}-${target.max} words while keeping the same topic, tone, and key facts.
-
-RULES:
-- Sound like a real human talking, not an AI
-- Use contractions (it's, don't, we're)
-- Use '...' for pauses before big numbers
-- Use blank lines between paragraphs for breathing room
-- Include specific numbers and data
-- Do NOT use filler phrases like "let's dive in" or "welcome back"
-- Keep the same topic/company/ticker as the original
-- ONLY use facts from the original scene text or the news stories provided — do NOT fabricate new numbers, dates, earnings, or claims
-- Output ONLY the expanded spokenText as plain text, no JSON, no markdown`;
-
-          const expandUser = `Original scene (type: ${scene.type}, id: ${scene.id}${scene.ticker ? ', ticker: ' + scene.ticker : ''}):
-
-${scene.spokenText}
-
-NEWS STORIES (use ONLY these facts):
-${newsStr}
-
-Expand this to ${target.min}-${target.max} words. Keep the same story, same facts, same tone — just add more depth, context, analysis, and vivid detail. Do NOT invent new facts.`;
-
           const expanded = await callNVIDIA([
-            { role: 'system', content: expandPrompt },
-            { role: 'user', content: expandUser }
+            {
+              role: 'system',
+              content: `Rewrite this finance video scene. Current: ${currentWords} words. Target: ${target.min}-${target.max} words. Same topic, tone, facts. Use "..." for pauses. Blank lines between paragraphs. Contractions. No filler phrases. ONLY use facts from the original or the news stories. Output ONLY the expanded text, no JSON.`
+            },
+            {
+              role: 'user',
+              content: `Scene (${scene.type}, ticker: ${scene.ticker || 'none'}):\n${scene.spokenText}\n\nNEWS: ${newsStr}\n\nExpand to ${target.min}-${target.max} words. Same facts, more depth.`
+            }
           ], 0.7);
 
-          // Clean up any markdown wrapping
-          const cleaned = expanded
-            .replace(/^```(?:json|markdown)?\n?/gm, '')
-            .replace(/```$/gm, '')
-            .replace(/^"|"$/g, '')
-            .trim();
+          const cleaned = expanded.replace(/^```(?:json|markdown)?\n?/gm, '').replace(/```$/gm, '').replace(/^"|"$/g, '').trim();
           if (cleaned.length > 100) {
-            // Validate expanded text against news stories before accepting
             const originalText = scene.spokenText;
             scene.spokenText = cleaned;
-            const expansionWarnings = validateScriptFacts(script, newsStories, marketData);
-            if (expansionWarnings.errors.length > 0) {
-              console.warn(`    ⚠ ${scene.id}: expansion introduced hallucinations, keeping original`);
-              console.warn(`      Issues:`, expansionWarnings.errors);
+            const { errors } = validateScriptFacts(script, newsStories, marketData);
+            if (errors.length > 0) {
+              console.warn(`    ⚠ ${scene.id}: expansion has hallucinations, keeping original`);
               scene.spokenText = originalText;
             } else {
-              const newWords = cleaned.split(/\s+/).filter(Boolean).length;
-              console.log(`    ✓ ${scene.id}: now ${newWords} words`);
+              console.log(`    ✓ ${scene.id}: now ${cleaned.split(/\s+/).filter(Boolean).length} words`);
             }
-          } else {
-            console.log(`    ⚠ ${scene.id}: expansion too short, keeping original`);
           }
         } catch (err) {
           console.error(`    ✗ ${scene.id}: expansion failed:`, err.message);
@@ -372,9 +189,6 @@ Expand this to ${target.min}-${target.max} words. Keep the same story, same fact
 
     const finalWords = script.scenes.reduce((sum, s) => sum + (s.spokenText || '').split(/\s+/).filter(Boolean).length, 0);
     console.log(`Final script word count: ${finalWords}`);
-    if (finalWords < TARGET_WORDS * 0.85) {
-      console.warn(`WARNING: Final word count (${finalWords}) is still below 85% of target (${TARGET_WORDS}). Video may be shorter than expected.`);
-    }
   }
 
   return script;
