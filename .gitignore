@@ -7,3 +7,4 @@ remotion/script.json
 *.mp3
 __pycache__/
 .DS_Store
+artifact.zip
