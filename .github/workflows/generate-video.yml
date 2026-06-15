@@ -49,7 +49,7 @@ jobs:
       - name: Generate video
         env:
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
-          NVIDIA_MODEL: meta/llama-3.3-70b-instruct
+          NVIDIA_MODEL: meta/llama-3.1-8b-instruct
           CURRENTS_API_KEY: ${{ secrets.CURRENTS_API_KEY }}
           TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
           KOKORO_VOICE: am_michael

@@ -50,7 +50,7 @@ async function callNVIDIA(messages, temperature = 0.75) {
     {
       model: process.env.NVIDIA_MODEL || 'meta/llama-3.1-70b-instruct',
       temperature,
-      max_tokens: 8000,
+      max_tokens: 4000,
       messages
     },
     {
