@@ -166,7 +166,7 @@ async function callNVIDIA(messages, temperature = 0.75) {
         'Authorization': `Bearer ${process.env.NVIDIA_API_KEY}`,
         'Content-Type': 'application/json'
       },
-      timeout: 180000
+      timeout: 300000  // 5 minutes — large prompts with news + market data take time
     }
   );
   return response.data.choices[0].message.content;
