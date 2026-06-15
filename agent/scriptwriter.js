@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { validateScriptFacts } from './fact-checker.js';
 
 const SYSTEM_PROMPT = `You are a finance scriptwriter. You write scripts that sound like a smart, confident human talking — NOT like an AI reading bullet points. Think: a sharp friend who watches CNBC all day and breaks it down over coffee.
 
@@ -57,6 +58,21 @@ Notice: short punchy paragraphs, "..." pauses before and after key numbers, blan
 5. Use real data from the market data AND news provided below. Get the numbers right.
 6. Each news scene must be a different company, different sector, different angle.
 7. The explainer must explain a concept from one of the stories — not a generic finance 101 lesson.
+
+## ANTI-HALLUCINATION RULES (VIOLATION = IMMEDIATE FAILURE):
+
+**YOU MUST ONLY STATE FACTS THAT ARE EXPLICITLY PROVIDED IN THE NEWS STORIES OR MARKET DATA BELOW.**
+
+1. NEVER fabricate earnings dates, earnings results, revenue numbers, or earnings beats/misses. If the news stories do not mention an earnings report, DO NOT mention earnings for that company.
+2. NEVER state that any stock, index, or crypto "hit an all-time high" or "broke record" unless the news stories explicitly say so.
+3. NEVER fabricate price targets, analyst ratings, or specific price predictions.
+4. NEVER claim a specific event happened on a specific day (e.g., "on Friday", "today") unless the news stories confirm it.
+5. NEVER invent specific percentage moves, dollar amounts, or volume figures that are not in the provided data.
+6. NEVER fabricate government policy announcements, Fed decisions, or regulatory actions.
+7. If you are unsure about a detail, use vague language like "recently" or "this week" instead of fabricating specifics.
+8. The market data provided is REAL and VERIFIED. Use ONLY the exact numbers from the market data section. Do NOT modify or embellish them.
+
+**TEST: Before writing any sentence with a specific number, ask yourself: "Is this number explicitly in the news stories or market data?" If not, DO NOT USE IT.**
 
 ## TICKER CLARITY (CRITICAL — do NOT confuse these):
 - SPY = the S&P 500 ETF (tracks the S&P 500 index). Say "the S&P 500" when speaking.
@@ -156,6 +172,11 @@ async function callNVIDIA(messages, temperature = 0.75) {
   return response.data.choices[0].message.content;
 }
 
+function validateScript(script, newsStories, marketData) {
+  const { errors, warnings } = validateScriptFacts(script, newsStories, marketData);
+  return [...errors, ...warnings];
+}
+
 export async function generateScript(newsStories, marketData = null) {
   // Build market data string
   let marketStr = 'No market data provided.';
@@ -200,7 +221,7 @@ export async function generateScript(newsStories, marketData = null) {
       // Try fixing common JSON issues: trailing commas, unescaped newlines in strings
       const fixed = jsonStr
         .replace(/,\s*([}\]])/g, '$1')                          // trailing commas
-        .replace(/"([^"]*)"/g, (m) => m.replace(/\n/g, '\\n')); // newlines inside quoted strings only
+        .replace(/"(?:[^"\\]|\\.)*"/g, (m) => m.replace(/\n/g, '\\n')); // newlines inside quoted strings only (handles escaped quotes)
       try { return JSON.parse(fixed); } catch {}
     }
     return null;
@@ -222,6 +243,42 @@ export async function generateScript(newsStories, marketData = null) {
   if (!script) {
     console.error('Failed to parse LLM output as JSON. Raw output:', raw?.slice(0, 500));
     throw new Error('Failed to parse LLM output as JSON after retry');
+  }
+
+  // HALLUCINATION DETECTION: validate script against provided facts
+  const hallucinationWarnings = validateScript(script, newsStories, marketData);
+  if (hallucinationWarnings.length > 0) {
+    console.warn('⚠ HALLUCINATION DETECTED — regenerating script with stricter prompt...');
+    console.warn('  Issues:', hallucinationWarnings);
+    try {
+      const strictPrompt = finalPrompt + `
+
+## STRICT FACT-CHECKING MODE — YOU ARE BEING TESTED:
+The previous script contained HALLUCINATED facts. Here are the violations:
+${hallucinationWarnings.map((w, i) => `${i + 1}. ${w}`).join('\n')}
+
+YOU MUST NOT REPEAT THESE ERRORS. You may ONLY state facts that appear verbatim in the news stories or market data provided. If a fact is not in the provided data, DO NOT mention it. Use vague language instead ("recently", "this week") when uncertain.`;
+
+      const strictRaw = await callNVIDIA([
+        { role: 'system', content: strictPrompt },
+        { role: 'user', content: userMessage + '\n\nDO NOT HALLUCINATE. Only use facts from the news stories and market data provided. Any fabricated facts will be detected.' }
+      ], 0.3);
+      const strictScript = extractJSON(strictRaw);
+      if (strictScript) {
+        const retryWarnings = validateScript(strictScript, newsStories, marketData);
+        if (retryWarnings.length < hallucinationWarnings.length) {
+          console.log(`  Retry improved: ${hallucinationWarnings.length} issues → ${retryWarnings.length} issues`);
+          script = strictScript;
+          if (retryWarnings.length > 0) {
+            console.warn('  Remaining minor issues:', retryWarnings);
+          }
+        } else {
+          console.warn('  Retry did not improve, keeping original with warnings');
+        }
+      }
+    } catch (retryErr) {
+      console.error('  Strict retry failed:', retryErr.message);
+    }
   }
 
   // Inject real market data into the market scene
@@ -268,18 +325,22 @@ RULES:
 - Include specific numbers and data
 - Do NOT use filler phrases like "let's dive in" or "welcome back"
 - Keep the same topic/company/ticker as the original
+- ONLY use facts from the original scene text or the news stories provided — do NOT fabricate new numbers, dates, earnings, or claims
 - Output ONLY the expanded spokenText as plain text, no JSON, no markdown`;
 
           const expandUser = `Original scene (type: ${scene.type}, id: ${scene.id}${scene.ticker ? ', ticker: ' + scene.ticker : ''}):
 
 ${scene.spokenText}
 
-Expand this to ${target.min}-${target.max} words. Keep the same story, same facts, same tone — just add more depth, context, analysis, and vivid detail.`;
+NEWS STORIES (use ONLY these facts):
+${newsStr}
+
+Expand this to ${target.min}-${target.max} words. Keep the same story, same facts, same tone — just add more depth, context, analysis, and vivid detail. Do NOT invent new facts.`;
 
           const expanded = await callNVIDIA([
             { role: 'system', content: expandPrompt },
             { role: 'user', content: expandUser }
-          ], 0.8);
+          ], 0.7);
 
           // Clean up any markdown wrapping
           const cleaned = expanded
@@ -288,9 +349,18 @@ Expand this to ${target.min}-${target.max} words. Keep the same story, same fact
             .replace(/^"|"$/g, '')
             .trim();
           if (cleaned.length > 100) {
+            // Validate expanded text against news stories before accepting
+            const originalText = scene.spokenText;
             scene.spokenText = cleaned;
-            const newWords = cleaned.split(/\s+/).filter(Boolean).length;
-            console.log(`    ✓ ${scene.id}: now ${newWords} words`);
+            const expansionWarnings = validateScriptFacts(script, newsStories, marketData);
+            if (expansionWarnings.errors.length > 0) {
+              console.warn(`    ⚠ ${scene.id}: expansion introduced hallucinations, keeping original`);
+              console.warn(`      Issues:`, expansionWarnings.errors);
+              scene.spokenText = originalText;
+            } else {
+              const newWords = cleaned.split(/\s+/).filter(Boolean).length;
+              console.log(`    ✓ ${scene.id}: now ${newWords} words`);
+            }
           } else {
             console.log(`    ⚠ ${scene.id}: expansion too short, keeping original`);
           }

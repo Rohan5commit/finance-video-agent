@@ -89,7 +89,7 @@ export const NewsSection = ({ scene }) => {
         </div>
       )}
 
-      {scene.ticker && scene.ticker !== 'null' && (
+      {scene.ticker && scene.ticker !== 'null' && scene.chartData && scene.chartData.length > 0 && (
         <div
           style={{
             position: 'absolute',
@@ -98,13 +98,7 @@ export const NewsSection = ({ scene }) => {
           }}
         >
           <Chart
-            data={[
-              { label: 'D1', value: 100 },
-              { label: 'D2', value: 112 },
-              { label: 'D3', value: 108 },
-              { label: 'D4', value: 125 },
-              { label: 'D5', value: 118 },
-            ]}
+            data={scene.chartData}
             startFrame={frame}
           />
         </div>

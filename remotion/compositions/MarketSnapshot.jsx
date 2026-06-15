@@ -11,7 +11,7 @@ const AssetPanel = ({ asset, index }) => {
   return (
     <div
       style={{
-        width: 880,
+        width: '100%',
         height: 440,
         border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: 8,
@@ -32,7 +32,7 @@ const AssetPanel = ({ asset, index }) => {
             fontWeight: 600,
           }}
         >
-          {asset.name}
+          {asset.name || 'Unknown'}
         </span>
         <span
           style={{
@@ -43,7 +43,7 @@ const AssetPanel = ({ asset, index }) => {
             marginLeft: 12,
           }}
         >
-          {asset.ticker}
+          {asset.ticker || ''}
         </span>
       </div>
 
@@ -61,7 +61,7 @@ const AssetPanel = ({ asset, index }) => {
       <div style={{ textAlign: 'right' }}>
         <span
           style={{
-            color: asset.positive ? '#00c853' : '#ff3d00',
+            color: asset.positive === true ? '#00c853' : asset.positive === false ? '#ff3d00' : '#8892b0',
             fontSize: 28,
             fontFamily: 'Arial, sans-serif',
             fontWeight: 700,

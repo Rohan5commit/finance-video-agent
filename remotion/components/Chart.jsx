@@ -3,7 +3,8 @@ import { useCurrentFrame, interpolate } from 'remotion';
 
 export const Chart = ({ data = [], startFrame = 0 }) => {
   const frame = useCurrentFrame();
-  const maxVal = Math.max(...data.map(d => d.value), 1);
+  if (data.length === 0) return null;
+  const maxVal = Math.max(...data.map(d => d.value || 0), 1);
   const barWidth = 50;
   const chartWidth = data.length * (barWidth + 20);
 
@@ -12,7 +13,7 @@ export const Chart = ({ data = [], startFrame = 0 }) => {
       {data.map((d, i) => {
         const barFrame = startFrame + i * 5;
         const heightProgress = interpolate(frame, [barFrame, barFrame + 30], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
-        const barHeight = (d.value / maxVal) * 180;
+        const barHeight = ((d.value || 0) / maxVal) * 180;
         const x = i * (barWidth + 20);
         const y = 200 - barHeight * heightProgress;
         

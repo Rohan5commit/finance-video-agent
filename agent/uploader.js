@@ -32,19 +32,24 @@ export async function uploadToYouTube(videoPath, title, description, tags) {
 
   const yt = google.youtube({ version: 'v3', auth: oauth2 });
 
+  if (!fs.existsSync(videoPath)) throw new Error(`Video file not found: ${videoPath}`);
+  const stats = fs.statSync(videoPath);
+  if (stats.size === 0) throw new Error('Video file is empty');
+  if (stats.size > 128 * 1024 * 1024 * 1024) throw new Error('Video file exceeds 128GB');
+
   async function doUpload() {
     const res = await yt.videos.insert({
       part: ['snippet', 'status'],
       requestBody: {
         snippet: {
           title,
-          description,
-          tags,
-          categoryId: '27',
+          description: description?.slice(0, 5000) || '',
+          tags: tags || [],
+          categoryId: process.env.YOUTUBE_CATEGORY_ID || '27',
           defaultLanguage: 'en'
         },
         status: {
-          privacyStatus: 'public',
+          privacyStatus: process.env.YOUTUBE_PRIVACY || 'unlisted',
           selfDeclaredMadeForKids: false
         }
       },

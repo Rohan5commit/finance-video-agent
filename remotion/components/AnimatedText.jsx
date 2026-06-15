@@ -1,7 +1,7 @@
 import React from 'react';
 import { useCurrentFrame, interpolate } from 'remotion';
 
-export const AnimatedText = ({ text, startFrame = 0, style = {} }) => {
+export const AnimatedText = ({ text = '', startFrame = 0, style = {} }) => {
   const frame = useCurrentFrame();
   const words = text.split(' ');
 

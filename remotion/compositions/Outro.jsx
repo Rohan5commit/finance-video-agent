@@ -1,13 +1,11 @@
 import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
 import { Background } from '../components/Background.jsx';
-import { Voiceover } from '../components/Voiceover.jsx';
 
 export const Outro = ({ scene }) => {
   const frame = useCurrentFrame();
   
   const textOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: 'clamp' });
-  const likePulse = Math.sin(frame * 0.15) * 0.025 + 1;
 
   return (
     <AbsoluteFill>
@@ -17,7 +15,7 @@ export const Outro = ({ scene }) => {
       <div
         style={{
           position: 'absolute',
-          top: 250,
+          top: 200,
           left: 200,
           right: 200,
           textAlign: 'center',
@@ -78,30 +76,6 @@ export const Outro = ({ scene }) => {
         })}
       </div>
 
-      {/* Like & Subscribe */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 200,
-          left: 0,
-          right: 0,
-          textAlign: 'center',
-          transform: `scale(${likePulse})`,
-        }}
-      >
-        <span
-          style={{
-            color: '#f5a623',
-            fontSize: 28,
-            fontFamily: 'Arial, sans-serif',
-            fontWeight: 700,
-            letterSpacing: 2,
-          }}
-        >
-          Like & Subscribe
-        </span>
-      </div>
-
       {/* Animated waveform */}
       <svg
         style={{
@@ -129,8 +103,6 @@ export const Outro = ({ scene }) => {
           );
         })}
       </svg>
-
-      {scene.spokenText && <Voiceover text={scene.spokenText} startFrame={0} />}
     </AbsoluteFill>
   );
 };

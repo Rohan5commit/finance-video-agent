@@ -25,6 +25,8 @@ export const Voiceover = ({ text, startFrame = 0 }) => {
           borderRadius: 24,
           padding: '10px 32px',
           maxWidth: '80%',
+          maxHeight: 200,
+          overflow: 'hidden',
           textAlign: 'center',
         }}
       >

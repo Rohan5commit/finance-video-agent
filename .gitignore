@@ -1,0 +1,9 @@
+node_modules/
+out/
+remotion/script.json
+.env
+.env.*
+*.wav
+*.mp3
+__pycache__/
+.DS_Store

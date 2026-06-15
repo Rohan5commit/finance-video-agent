@@ -8,21 +8,43 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default async function render() {
   const entryPoint = path.resolve(__dirname, '../remotion/index.js');
-  
-  const bundled = await bundle({ entryPoint, webpackOverride: c => c });
-  
-  const comp = await selectComposition({ serveUrl: bundled, id: 'FinanceVideo' });
-  
+  const outputPath = path.resolve(__dirname, '../out/video.mp4');
+
+  let bundled;
+  try {
+    bundled = await bundle({ entryPoint, webpackOverride: c => c });
+  } catch (err) {
+    console.error('Failed to bundle Remotion project:', err.message);
+    throw err;
+  }
+
+  let comp;
+  try {
+    comp = await selectComposition({ serveUrl: bundled, id: 'FinanceVideo' });
+  } catch (err) {
+    console.error('Failed to select composition:', err.message);
+    throw err;
+  }
+
   fs.mkdirSync(path.resolve(__dirname, '../out'), { recursive: true });
-  
-  await renderMedia({
-    composition: comp,
-    serveUrl: bundled,
-    codec: 'h264',
-    outputLocation: path.resolve(__dirname, '../out/video.mp4'),
-    inputProps: {},
-    timeoutInMilliseconds: 3 * 60 * 1000,
-  });
-  
+
+  try {
+    await renderMedia({
+      composition: comp,
+      serveUrl: bundled,
+      codec: 'h264',
+      outputLocation: outputPath,
+      inputProps: {},
+      timeoutInMilliseconds: 15 * 60 * 1000,
+    });
+  } catch (err) {
+    console.error('Failed to render video:', err.message);
+    throw err;
+  }
+
+  if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size === 0) {
+    throw new Error('Render completed but output file is missing or empty');
+  }
+
   console.log('Render complete: out/video.mp4');
 }

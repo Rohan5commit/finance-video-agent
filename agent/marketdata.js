@@ -33,8 +33,7 @@ async function quote(symbol) {
 
 export async function fetchMarketData() {
   if (!API_KEY) {
-    console.error('TWELVE_DATA_API_KEY not set. Skipping market data.');
-    return { assets: [], topMovers: [], allQuotes: [] };
+    throw new Error('TWELVE_DATA_API_KEY not set. Cannot fetch market data.');
   }
 
   console.log('Fetching real-time market data from Twelve Data...');
@@ -61,17 +60,16 @@ export async function fetchMarketData() {
     const batchResults = await Promise.all(batch.map(s => quote(s)));
     results.push(...batchResults.filter(Boolean));
     if (i + BATCH_SIZE < symbols.length) {
-      console.log(`  Batch ${Math.floor(i / BATCH_SIZE) + 1} complete (${results.length} ok), waiting 30s for rate limit...`);
-      await new Promise(r => setTimeout(r, 30000)); // 30s between batches
+      console.log(`  Batch ${Math.floor(i / BATCH_SIZE) + 1} complete (${results.length} ok), waiting 65s for rate limit...`);
+      await new Promise(r => setTimeout(r, 65000)); // 30s between batches
     }
   }
 
-  const valid = results.filter(r => r !== null);
-  console.log(`Got market data for ${valid.length}/${symbols.length} symbols`);
+  console.log(`Got market data for ${results.length}/${symbols.length} symbols`);
 
   // Indices/commodities/crypto for the market overview
   const indexSymbols = ['SPY', 'QQQ', 'DIA', 'BTC/USD', 'ETH/USD', 'CL'];
-  const assets = valid
+  const assets = results
     .filter(r => indexSymbols.includes(r.symbol))
     .map(r => ({
       name: r.name,
@@ -83,10 +81,10 @@ export async function fetchMarketData() {
 
   // Top movers: just the stocks, sorted by abs(% change)
   const stockSymbols = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA'];
-  const topMovers = valid
+  const topMovers = results
     .filter(r => stockSymbols.includes(r.symbol))
     .sort((a, b) => Math.abs(parseFloat(b.percentChange)) - Math.abs(parseFloat(a.percentChange)))
     .slice(0, 5);
 
-  return { assets, topMovers, allQuotes: valid };
+  return { assets, topMovers, allQuotes: results };
 }

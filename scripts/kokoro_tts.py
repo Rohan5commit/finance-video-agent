@@ -24,9 +24,14 @@ def main():
 
     print(f"Found {len(text_files)} text chunks, voice={voice}")
 
-    from kokoro import KPipeline
-    import soundfile as sf
-    import numpy as np
+    try:
+        from kokoro import KPipeline
+        import soundfile as sf
+        import numpy as np
+    except ImportError as e:
+        print(f"Missing dependency: {e}")
+        print("Install with: pip install kokoro soundfile numpy")
+        sys.exit(1)
 
     pipeline = KPipeline(lang_code='a')
 

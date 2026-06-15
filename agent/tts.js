@@ -1,4 +1,4 @@
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -53,8 +53,8 @@ export async function generateAudio(script) {
 
   try {
     console.log(`  Running Kokoro TTS (voice: ${VOICE})...`);
-    execSync(
-      `python3 "${kokoroScript}" "${chunkDir}" "${audioOutDir}" "${VOICE}"`,
+    execFileSync(
+      'python3', [kokoroScript, chunkDir, audioOutDir, VOICE],
       { stdio: 'inherit', timeout: 600000 }
     );
   } catch (err) {
@@ -81,8 +81,8 @@ export async function generateAudio(script) {
     const wavPath = wavFiles[i];
     const mp3Path = wavPath.replace('.wav', '.mp3');
     try {
-      execSync(
-        `ffmpeg -i "${wavPath}" -codec:a libmp3lame -q:a 2 "${mp3Path}" -y`,
+      execFileSync(
+        'ffmpeg', ['-i', wavPath, '-codec:a', 'libmp3lame', '-q:a', '2', mp3Path, '-y'],
         { stdio: 'pipe', timeout: 30000 }
       );
       const size = fs.statSync(mp3Path).size;
@@ -97,6 +97,10 @@ export async function generateAudio(script) {
 
   if (audioFiles.length === 0) {
     throw new Error('No MP3 files produced — check ffmpeg installation');
+  }
+
+  if (audioFiles.length < wavFiles.length * 0.8) {
+    throw new Error(`Too many audio conversion failures (${wavFiles.length - audioFiles.length}/${wavFiles.length} failed)`);
   }
 
   // Clean up temp text chunks
@@ -118,22 +122,23 @@ export function mergeAudioFiles(audioFiles) {
   }
 
   try {
-    execSync('ffmpeg -version', { stdio: 'pipe', timeout: 5000 });
+    execFileSync('ffmpeg', ['-version'], { stdio: 'pipe', timeout: 5000 });
   } catch {
     console.error('ffmpeg not found! Audio merge requires ffmpeg.');
     return null;
   }
 
-  const concatList = audioFiles.map(f => `file '${f}'`).join('\n');
+  // Escape single quotes in file paths for ffmpeg concat demuxer
+  const concatList = audioFiles.map(f => `file '${f.replace(/'/g, "'\\''")}'`).join('\n');
   const listPath = path.join(OUT_DIR, 'concat_list.txt');
   fs.writeFileSync(listPath, concatList);
 
   console.log('Merging audio files with ffmpeg...');
   try {
-    execSync(`ffmpeg -f concat -safe 0 -i "${listPath}" -c:a libmp3lame -q:a 2 "${mergedPath}" -y`, {
-      stdio: 'pipe',
-      timeout: 30000
-    });
+    execFileSync(
+      'ffmpeg', ['-f', 'concat', '-safe', '0', '-i', listPath, '-c:a', 'libmp3lame', '-q:a', '2', mergedPath, '-y'],
+      { stdio: 'pipe', timeout: 30000 }
+    );
     console.log(`Audio merged: ${mergedPath}`);
     return mergedPath;
   } catch (err) {
@@ -146,8 +151,8 @@ export function mergeAudioFiles(audioFiles) {
 // Get duration of a media file in seconds using ffprobe
 function getMediaDuration(filePath) {
   try {
-    const result = execSync(
-      `ffprobe -v quiet -show_entries format=duration -of csv=p=0 "${filePath}"`,
+    const result = execFileSync(
+      'ffprobe', ['-v', 'quiet', '-show_entries', 'format=duration', '-of', 'csv=p=0', filePath],
       { stdio: 'pipe', timeout: 10000 }
     ).toString().trim();
     return parseFloat(result) || 0;
@@ -164,7 +169,7 @@ export function mergeAudioWithVideo(videoPath, audioPath, outputPath) {
   }
 
   try {
-    execSync('ffmpeg -version', { stdio: 'pipe', timeout: 5000 });
+    execFileSync('ffmpeg', ['-version'], { stdio: 'pipe', timeout: 5000 });
   } catch {
     console.error('ffmpeg not found! Video-audio merge requires ffmpeg.');
     return videoPath;
@@ -173,28 +178,32 @@ export function mergeAudioWithVideo(videoPath, audioPath, outputPath) {
   const videoDuration = getMediaDuration(videoPath);
   const audioDuration = getMediaDuration(audioPath);
   if (videoDuration === 0 || audioDuration === 0) {
-    console.warn('  WARNING: Could not detect media durations via ffprobe. Audio may be shorter than video.');
+    console.error('Cannot merge: unable to determine media durations');
+    return videoPath;
   }
   console.log(`  Video duration: ${videoDuration.toFixed(1)}s, Audio duration: ${audioDuration.toFixed(1)}s`);
 
   console.log('Merging audio into video with ffmpeg...');
   try {
-    if (audioDuration > 0 && videoDuration > 0 && audioDuration < videoDuration) {
-      // Audio is shorter than video — pad with silence to match video length
+    if (audioDuration < videoDuration) {
       console.log(`  Audio is ${(videoDuration - audioDuration).toFixed(1)}s shorter than video — padding with silence`);
-      execSync(
-        `ffmpeg -i "${videoPath}" -i "${audioPath}" ` +
-        `-filter_complex "[1:a]apad=whole_dur=${videoDuration.toFixed(3)}[padded]" ` +
-        `-map 0:v:0 -map "[padded]" -c:v copy -c:a aac -t ${videoDuration.toFixed(3)} "${outputPath}" -y`,
+      execFileSync(
+        'ffmpeg', [
+          '-i', videoPath, '-i', audioPath,
+          '-filter_complex', `[1:a]apad=whole_dur=${videoDuration.toFixed(3)}[padded]`,
+          '-map', '0:v:0', '-map', '[padded]', '-c:v', 'copy', '-c:a', 'aac', '-t', videoDuration.toFixed(3), outputPath, '-y'
+        ],
         { stdio: 'pipe', timeout: 120000 }
       );
     } else {
-      // Audio is longer or same — use shortest (trims audio to video length)
       if (audioDuration > videoDuration) {
         console.log(`  Audio is ${(audioDuration - videoDuration).toFixed(1)}s longer than video — trimming to match`);
       }
-      execSync(
-        `ffmpeg -i "${videoPath}" -i "${audioPath}" -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest "${outputPath}" -y`,
+      execFileSync(
+        'ffmpeg', [
+          '-i', videoPath, '-i', audioPath, '-c:v', 'copy', '-c:a', 'aac',
+          '-map', '0:v:0', '-map', '1:a:0', '-shortest', outputPath, '-y'
+        ],
         { stdio: 'pipe', timeout: 120000 }
       );
     }
@@ -208,13 +217,26 @@ export function mergeAudioWithVideo(videoPath, audioPath, outputPath) {
 }
 
 export function writeAudioMetadata(script, audioFiles, outputDir = OUT_DIR) {
-  const totalChars = script.scenes.reduce((sum, s) => sum + (s.spokenText?.length || 0), 0);
-  const estimatedDurationMs = totalChars * 55;
+  // Use ffprobe to get actual audio duration instead of character-based estimation
+  let estimatedDurationMs = 0;
+  try {
+    const totalDuration = audioFiles.reduce((sum, f) => {
+      const dur = getMediaDuration(f);
+      return sum + (dur > 0 ? dur : 0);
+    }, 0);
+    estimatedDurationMs = totalDuration * 1000;
+  } catch {
+    // Fallback to character-based estimate
+    const totalChars = script.scenes.reduce((sum, s) => sum + (s.spokenText?.length || 0), 0);
+    estimatedDurationMs = totalChars * 55;
+  }
+
   let charOffset = 0;
+  const totalChars = script.scenes.reduce((sum, s) => sum + (s.spokenText?.length || 0), 0);
   const sceneTimings = script.scenes.map(scene => {
     const length = scene.spokenText?.length || 0;
-    const startMs = charOffset * 55;
-    const durationMs = length * 55;
+    const startMs = totalChars > 0 ? (charOffset / totalChars) * estimatedDurationMs : 0;
+    const durationMs = totalChars > 0 ? (length / totalChars) * estimatedDurationMs : 0;
     charOffset += length;
     return { id: scene.id, startMs, durationMs };
   });
