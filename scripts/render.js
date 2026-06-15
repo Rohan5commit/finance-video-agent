@@ -18,9 +18,12 @@ export default async function render() {
     throw err;
   }
 
+  const scriptPath = path.resolve(__dirname, '../remotion/script.json');
+  const script = JSON.parse(fs.readFileSync(scriptPath, 'utf-8'));
+
   let comp;
   try {
-    comp = await selectComposition({ serveUrl: bundled, id: 'FinanceVideo' });
+    comp = await selectComposition({ serveUrl: bundled, id: 'FinanceVideo', inputProps: { script } });
   } catch (err) {
     console.error('Failed to select composition:', err.message);
     throw err;
@@ -34,7 +37,7 @@ export default async function render() {
       serveUrl: bundled,
       codec: 'h264',
       outputLocation: outputPath,
-      inputProps: {},
+      inputProps: { script },
       timeoutInMilliseconds: 15 * 60 * 1000,
     });
   } catch (err) {
