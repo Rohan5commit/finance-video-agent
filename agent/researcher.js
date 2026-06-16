@@ -177,11 +177,16 @@ export async function fetchFinanceNews(minStories = 5) {
   allResults.push(...biz, ...finance, ...tech);
   console.log(`  Got ${biz.length} business, ${finance.length} finance, ${tech.length} tech`);
 
-  // ── Keyword searches (5 requests) ──
+  // ── Keyword searches (8 requests) ──
   const queries = [
     'stock market S&P 500 NASDAQ Dow Jones',
     'Bitcoin cryptocurrency crypto',
     'NVIDIA Apple Tesla tech stocks',
+    'earnings revenue profit quarterly results',
+    'Federal Reserve interest rates Fed inflation CPI',
+    'bonds treasury yields yield curve',
+    'oil crude OPEC energy commodities',
+    'IPO M&A merger acquisition buyout',
   ];
 
   for (const q of queries) {
@@ -223,7 +228,9 @@ export async function fetchFinanceNews(minStories = 5) {
     console.warn(`  Only ${unique.length} stories. Running supplementary searches...`);
     const extra1 = await searchNews('biggest stock movers gainers losers today');
     const extra2 = await searchNews('IPO housing market real estate economy');
-    allResults.push(...extra1, ...extra2);
+    const extra3 = await searchNews('earnings season guidance outlook');
+    const extra4 = await searchNews('central bank monetary policy rate decision');
+    allResults.push(...extra1, ...extra2, ...extra3, ...extra4);
     unique = deduplicateResults(allResults).filter(item =>
       item.title && item.title.length > 15 &&
       item.summary && item.summary.length > 20 &&
