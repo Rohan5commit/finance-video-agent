@@ -195,12 +195,26 @@ export async function fetchFinanceNews(minStories = 5) {
   let unique = deduplicateResults(allResults);
   console.log(`  After dedup: ${unique.length} unique stories`);
 
-  // Filter low quality
+  // Filter low quality and non-finance topics
+  const nonFinanceCategories = new Set([
+    'sports', 'entertainment', 'health', 'lifestyle', 'travel',
+    'food', 'fashion', 'science', 'education', 'environment',
+    'automotive', 'real estate', 'property', 'weather', 'religion',
+    'arts', 'culture', 'gaming', 'music', 'movies', 'tv'
+  ]);
+  
   unique = unique.filter(item => {
     const hasTitle = item.title && item.title.length > 15;
     const hasSummary = item.summary && item.summary.length > 20;
     const isNotJunk = item.title !== '[Removed]' && item.title !== 'None';
-    return hasTitle && hasSummary && isNotJunk;
+    
+    // Filter out non-finance categories
+    const categories = item.category || [];
+    const isNonFinance = categories.some(cat => 
+      nonFinanceCategories.has(cat.toLowerCase())
+    );
+    
+    return hasTitle && hasSummary && isNotJunk && !isNonFinance;
   });
 
   console.log(`  After filter: ${unique.length} stories`);

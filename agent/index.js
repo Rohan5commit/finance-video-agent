@@ -7,9 +7,80 @@ import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import axios from 'axios';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = path.resolve(__dirname, '../out');
+
+/**
+ * Use NVIDIA NIM API to verify a story is finance/business related.
+ * Returns { isFinance: boolean, reason: string }
+ */
+async function verifyStoryIsFinance(story) {
+  const prompt = `You are a finance news classifier. Determine if this news story is related to finance, business, markets, investing, or the economy.
+
+Story Title: ${story.title}
+Story Summary: ${story.summary}
+
+Reply with ONLY a JSON object:
+{"isFinance": true/false, "reason": "brief explanation"}
+
+Examples of finance/business topics: stocks, companies, earnings, markets, crypto, banking, interest rates, GDP, inflation, mergers, IPOs, tech stocks, commodities, real estate market.
+
+Examples of non-finance topics: sports scores, celebrity news, weather, entertainment, politics (unless market-moving), crime, health/medical research, lifestyle, travel.`;
+
+  try {
+    const response = await axios.post(
+      'https://integrate.api.nvidia.com/v1/chat/completions',
+      {
+        model: process.env.NVIDIA_MODEL || 'meta/llama-3.1-8b-instruct',
+        temperature: 0.1,
+        max_tokens: 100,
+        messages: [{ role: 'user', content: prompt }]
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.NVIDIA_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 60000
+      }
+    );
+
+    const content = response.data.choices[0].message.content;
+    const match = content.match(/\{[\s\S]*\}/);
+    if (match) {
+      return JSON.parse(match[0]);
+    }
+    return { isFinance: false, reason: 'Failed to parse AI response' };
+  } catch (err) {
+    console.warn(`  Warning: Could not verify story "${story.title.slice(0, 40)}...": ${err.message}`);
+    return { isFinance: true, reason: 'Verification failed, assuming finance' };
+  }
+}
+
+/**
+ * Filter stories to only include finance-related ones using NVIDIA API.
+ */
+async function filterFinanceStories(stories) {
+  console.log('  Verifying stories are finance-related...');
+  const verified = [];
+  
+  for (const story of stories) {
+    const result = await verifyStoryIsFinance(story);
+    if (result.isFinance) {
+      console.log(`    ✓ "${story.title.slice(0, 50)}..." - ${result.reason}`);
+      verified.push(story);
+    } else {
+      console.log(`    ✗ FILTERED: "${story.title.slice(0, 50)}..." - ${result.reason}`);
+    }
+    // Small delay to avoid rate limiting
+    await new Promise(r => setTimeout(r, 200));
+  }
+  
+  console.log(`  Kept ${verified.length} of ${stories.length} stories`);
+  return verified;
+}
 
 // Validate required environment variables
 const required = ['CURRENTS_API_KEY', 'NVIDIA_API_KEY', 'TWELVE_DATA_API_KEY'];
@@ -23,23 +94,32 @@ for (const key of required) {
 async function main() {
   console.log('=== Finance Video Agent ===');
 
-  // Step 1/8: Fetch news (55 searches)
-  console.log('Step 1/8: Fetching finance news...');
-  const stories = await fetchFinanceNews(3);
+  // Step 1/9: Fetch news (55 searches)
+  console.log('Step 1/9: Fetching finance news...');
+  let stories = await fetchFinanceNews(3);
   console.log(`Got ${stories.length} stories`);
 
-  // Step 2/8: Fetch market data
-  console.log('Step 2/8: Fetching market data...');
+  // Step 1.5/9: Verify stories are finance-related using NVIDIA API
+  console.log('Step 1.5/9: Verifying stories are finance-related...');
+  stories = await filterFinanceStories(stories);
+  if (stories.length < 1) {
+    console.error('No finance-related stories found after verification. Aborting.');
+    process.exit(1);
+  }
+  console.log(`Using ${stories.length} verified finance stories`);
+
+  // Step 2/9: Fetch market data
+  console.log('Step 2/9: Fetching market data...');
   const marketData = await fetchMarketData();
   console.log(`Got data for ${marketData.allQuotes.length} symbols`);
 
-  // Step 3/8: Generate script
-  console.log('Step 3/8: Generating script with NVIDIA NIM...');
+  // Step 3/9: Generate script
+  console.log('Step 3/9: Generating script with NVIDIA NIM...');
   const script = await generateScript(stories, marketData);
   console.log(`Script: "${script.title}" (${script.scenes.length} scenes)`);
 
-  // Step 4/8: Validate script against provided facts
-  console.log('Step 4/8: Validating script facts...');
+  // Step 4/9: Validate script against provided facts
+  console.log('Step 4/9: Validating script facts...');
   const { validateScriptFacts } = await import('./fact-checker.js');
   const validation = validateScriptFacts(script, stories, marketData);
   if (validation.errors.length > 0) {
@@ -54,14 +134,14 @@ async function main() {
   }
   console.log('  ✓ Script validation passed');
 
-  // Step 5/8: Write script.json
-  console.log('Step 5/8: Writing script.json...');
+  // Step 5/9: Write script.json
+  console.log('Step 5/9: Writing script.json...');
   const scriptPath = path.resolve(__dirname, '../remotion/script.json');
   fs.mkdirSync(path.dirname(scriptPath), { recursive: true });
   fs.writeFileSync(scriptPath, JSON.stringify(script, null, 2));
 
-  // Step 6/8: Generate TTS audio (BEFORE render)
-  console.log('Step 6/8: Generating TTS audio...');
+  // Step 6/9: Generate TTS audio (BEFORE render)
+  console.log('Step 6/9: Generating TTS audio...');
   let narrationPath = null;
   try {
     const audioFiles = await generateAudio(script);
@@ -108,15 +188,15 @@ async function main() {
     }
   }
 
-  // Step 7/8: Render video
-  console.log('Step 7/8: Rendering video with Remotion...');
+  // Step 7/9: Render video
+  console.log('Step 7/9: Rendering video with Remotion...');
   const { default: render } = await import('../scripts/render.js');
   await render();
   console.log('Render complete');
 
-  // Step 8/8: Merge audio into video
+  // Step 8/9: Merge audio into video
   if (narrationPath && fs.existsSync(narrationPath)) {
-    console.log('Step 8/8: Merging audio into video...');
+    console.log('Step 8/9: Merging audio into video...');
     const videoPath = path.join(OUT_DIR, 'video.mp4');
     const finalPath = path.join(OUT_DIR, 'video_with_audio.mp4');
     const result = mergeAudioWithVideo(videoPath, narrationPath, finalPath);
@@ -125,11 +205,11 @@ async function main() {
       try { fs.unlinkSync(result); } catch {}
     }
   } else {
-    console.log('Step 8/8: No audio to merge, skipping');
+    console.log('Step 8/9: No audio to merge, skipping');
   }
 
-  // Upload to YouTube
-  console.log('\nUploading to YouTube...');
+  // Step 9/9: Upload to YouTube
+  console.log('\nStep 9/9: Uploading to YouTube...');
   try {
     const url = await uploadToYouTube(
       path.join(OUT_DIR, 'video.mp4'),
