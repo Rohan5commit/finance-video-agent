@@ -96,7 +96,7 @@ async function main() {
 
   // Step 1/9: Fetch news (55 searches)
   console.log('Step 1/9: Fetching finance news...');
-  let stories = await fetchFinanceNews(3);
+  let stories = await fetchFinanceNews(10);
   console.log(`Got ${stories.length} stories`);
 
   // Step 1.5/9: Verify stories are finance-related using NVIDIA API
