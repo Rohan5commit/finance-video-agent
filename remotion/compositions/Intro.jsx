@@ -2,7 +2,6 @@ import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
 import { Background } from '../components/Background.jsx';
 import { AnimatedText } from '../components/AnimatedText.jsx';
-import { Voiceover } from '../components/Voiceover.jsx';
 
 export const Intro = ({ scene }) => {
   const frame = useCurrentFrame();
@@ -115,9 +114,6 @@ export const Intro = ({ scene }) => {
           {scene.subheadline}
         </span>
       </div>
-
-      {/* Subtitle */}
-      {scene.spokenText && <Voiceover text={scene.spokenText} startFrame={0} />}
     </AbsoluteFill>
   );
 };

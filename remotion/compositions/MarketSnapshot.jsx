@@ -1,7 +1,6 @@
 import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
 import { Background } from '../components/Background.jsx';
-import { Voiceover } from '../components/Voiceover.jsx';
 
 const AssetPanel = ({ asset, index }) => {
   const frame = useCurrentFrame();
@@ -107,8 +106,6 @@ export const MarketSnapshot = ({ scene }) => {
   return (
     <AbsoluteFill>
       <Background />
-
-      {scene.spokenText && <Voiceover text={scene.spokenText} startFrame={0} />}
 
       {/* Header */}
       <div
