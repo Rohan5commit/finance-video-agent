@@ -49,7 +49,7 @@ export async function uploadToYouTube(videoPath, title, description, tags) {
           defaultLanguage: 'en'
         },
         status: {
-          privacyStatus: process.env.YOUTUBE_PRIVACY || 'unlisted',
+          privacyStatus: process.env.YOUTUBE_PRIVACY || 'public',
           selfDeclaredMadeForKids: false
         }
       },
