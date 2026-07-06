@@ -111,7 +111,10 @@ export async function generateAudio(script) {
 
 // Merge audio files into a single narration track
 export function mergeAudioFiles(audioFiles) {
-  if (audioFiles.length === 0) return null;
+  if (audioFiles.length === 0) {
+    console.error('No audio files to merge');
+    return null;
+  }
 
   const mergedPath = path.join(OUT_DIR, 'narration.mp3');
 
@@ -155,8 +158,14 @@ function getMediaDuration(filePath) {
       'ffprobe', ['-v', 'quiet', '-show_entries', 'format=duration', '-of', 'csv=p=0', filePath],
       { stdio: 'pipe', timeout: 10000 }
     ).toString().trim();
-    return parseFloat(result) || 0;
-  } catch {
+    const duration = parseFloat(result);
+    if (isNaN(duration) || duration <= 0) {
+      console.warn(`Warning: Could not get duration for ${filePath}`);
+      return 0;
+    }
+    return duration;
+  } catch (err) {
+    console.warn(`Warning: ffprobe failed for ${filePath}: ${err.message}`);
     return 0;
   }
 }

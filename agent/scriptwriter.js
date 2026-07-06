@@ -81,6 +81,42 @@ function extractJSON(text) {
   return null;
 }
 
+function validateScriptSchema(script) {
+  const errors = [];
+  if (!script || typeof script !== 'object') {
+    return ['Script is not a valid object'];
+  }
+  if (!script.title || typeof script.title !== 'string') {
+    errors.push('Missing or invalid "title"');
+  }
+  if (!script.description || typeof script.description !== 'string') {
+    errors.push('Missing or invalid "description"');
+  }
+  if (!Array.isArray(script.tags)) {
+    errors.push('Missing or invalid "tags" (must be array)');
+  }
+  if (!Array.isArray(script.scenes)) {
+    errors.push('Missing or invalid "scenes" (must be array)');
+  } else {
+    const validTypes = ['intro', 'news', 'explainer', 'market', 'outro'];
+    for (const scene of script.scenes) {
+      if (!scene.id || typeof scene.id !== 'string') {
+        errors.push(`Scene missing "id"`);
+      }
+      if (!scene.type || !validTypes.includes(scene.type)) {
+        errors.push(`Scene "${scene.id || 'unknown'}" has invalid type "${scene.type}"`);
+      }
+      if (typeof scene.durationSeconds !== 'number' || scene.durationSeconds <= 0) {
+        errors.push(`Scene "${scene.id || 'unknown'}" has invalid durationSeconds`);
+      }
+      if (!scene.spokenText || typeof scene.spokenText !== 'string') {
+        errors.push(`Scene "${scene.id || 'unknown'}" missing spokenText`);
+      }
+    }
+  }
+  return errors;
+}
+
 export async function generateScript(newsStories, marketData = null) {
   let marketStr = 'No market data provided.';
   if (marketData && marketData.assets) {
@@ -122,6 +158,14 @@ export async function generateScript(newsStories, marketData = null) {
   }
   if (!script) {
     throw new Error('Failed to parse LLM output as JSON');
+  }
+
+  // Validate script schema
+  const schemaErrors = validateScriptSchema(script);
+  if (schemaErrors.length > 0) {
+    console.error('Script schema validation failed:');
+    schemaErrors.forEach(e => console.error(`  - ${e}`));
+    throw new Error(`Invalid script schema: ${schemaErrors.join(', ')}`);
   }
 
   // Inject real market data into the market scene

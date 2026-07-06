@@ -61,7 +61,7 @@ export async function fetchMarketData() {
     results.push(...batchResults.filter(Boolean));
     if (i + BATCH_SIZE < symbols.length) {
       console.log(`  Batch ${Math.floor(i / BATCH_SIZE) + 1} complete (${results.length} ok), waiting 65s for rate limit...`);
-      await new Promise(r => setTimeout(r, 65000)); // 30s between batches
+      await new Promise(r => setTimeout(r, 65000)); // 65s between batches (8/min rate limit)
     }
   }
 

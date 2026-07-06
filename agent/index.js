@@ -3,6 +3,7 @@ import { fetchMarketData } from './marketdata.js';
 import { generateScript } from './scriptwriter.js';
 import { generateAudio, mergeAudioFiles, mergeAudioWithVideo, writeAudioMetadata } from './tts.js';
 import { uploadToYouTube } from './uploader.js';
+import { validateScriptFacts } from './fact-checker.js';
 import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
@@ -123,7 +124,6 @@ async function main() {
 
   // Step 4/9: Validate script against provided facts
   console.log('Step 4/9: Validating script facts...');
-  const { validateScriptFacts } = await import('./fact-checker.js');
   const validation = validateScriptFacts(script, stories, marketData);
   if (validation.errors.length > 0) {
     console.error('❌ CRITICAL: Script contains fabricated facts:');

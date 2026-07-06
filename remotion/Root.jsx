@@ -17,13 +17,13 @@ const FinanceVideo = () => {
     );
   }
 
-  let frame = 0;
   return (
     <AbsoluteFill style={{ backgroundColor: '#0a0e1a' }}>
-      {(script.scenes || []).map((scene) => {
+      {(script.scenes || []).map((scene, index) => {
         const durationInFrames = (scene.durationSeconds || 30) * 30;
-        const from = frame;
-        frame += durationInFrames;
+        const from = script.scenes
+          .slice(0, index)
+          .reduce((sum, s) => sum + (s.durationSeconds || 30) * 30, 0);
         return (
           <Sequence key={scene.id} from={from} durationInFrames={durationInFrames}>
             <SceneComponent scene={scene} />

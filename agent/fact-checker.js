@@ -151,7 +151,7 @@ export function validateScriptFacts(script, newsStories, marketData) {
   const fedPatterns = [
     /fed\s+(cut|raised|held)\s+(rates|interest)/i,
     /federal\s+reserve\s+(cut|raised|held|decided|announced)/i,
-    /\bsec\b\s+(approved|rejected|ruled|charged|fined)/i,
+    /\bSEC\s+(approved|rejected|ruled|charged|fined)/i,
     /congress\s+(passed|approved|rejected)/i,
     /president\s+(signed|signed\s+into|vetoed)/i,
   ];
@@ -161,7 +161,7 @@ export function validateScriptFacts(script, newsStories, marketData) {
       const newsHasFed = newsMentions(newsStories, /\bfed\b/i) ||
                          newsMentions(newsStories, /\bfederal\s+reserve\b/i) ||
                          newsMentions(newsStories, /\binterest\s+rate\b/i) ||
-                         newsMentions(newsStories, /\bsec\b/i) ||
+                         newsMentions(newsStories, /\bSEC\b/i) ||
                          newsMentions(newsStories, /\bcongress\b/i) ||
                          newsMentions(newsStories, /\bpresident\b/i);
       if (!newsHasFed) {
