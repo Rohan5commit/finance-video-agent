@@ -1,15 +1,16 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
+import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
 import { Background } from '../components/Background.jsx';
 
 export const Outro = ({ scene }) => {
   const frame = useCurrentFrame();
+  const { durationInFrames } = useVideoConfig();
   
   const titleOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: 'clamp' });
   const titleScale = interpolate(frame, [0, 20], [0.9, 1], { extrapolateRight: 'clamp' });
 
   const bullets = (scene.summaryBullets || []).slice(0, 3);
-  const totalDuration = 30 * 30;
+  const totalDuration = durationInFrames;
 
   return (
     <AbsoluteFill>

@@ -83,7 +83,10 @@ async function filterFinanceStories(stories) {
 }
 
 // Validate required environment variables
-const required = ['CURRENTS_API_KEY', 'NVIDIA_API_KEY', 'TWELVE_DATA_API_KEY'];
+const required = [
+  'CURRENTS_API_KEY', 'NVIDIA_API_KEY', 'TWELVE_DATA_API_KEY',
+  'YOUTUBE_CLIENT_ID', 'YOUTUBE_CLIENT_SECRET', 'YOUTUBE_REFRESH_TOKEN'
+];
 for (const key of required) {
   if (!process.env[key]) {
     console.error(`Missing required env var: ${key}`);
@@ -159,7 +162,7 @@ async function main() {
   }
 
   // Step 6.5: Scale scene durations to match actual audio length
-  if (narrationPath && fs.existsSync(narrationPath)) {
+  if (narrationPath && fs.existsSync(narrationPath) && script.scenes && Array.isArray(script.scenes)) {
     try {
       const audioDurationRaw = execFileSync(
         'ffprobe', ['-v', 'quiet', '-show_entries', 'format=duration', '-of', 'csv=p=0', narrationPath],
