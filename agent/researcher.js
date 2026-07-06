@@ -104,6 +104,7 @@ async function getLatestByCategory(category, retries = 2) {
         await new Promise(r => setTimeout(r, 10000));
         continue;
       }
+      const isLast = attempt === retries;
       if (isLast) return [];
       await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
     }
