@@ -48,7 +48,7 @@ def main():
 
         # Generate audio segments and concatenate
         all_audio = []
-        for gs, ps, audio in pipeline(text, voice=voice, speed=1.0):
+        for gs, ps, audio in pipeline(text, voice=voice, speed=1.5):
             all_audio.append(audio)
 
         if not all_audio:
