@@ -55,7 +55,7 @@ export async function generateAudio(script) {
     console.log(`  Running Kokoro TTS (voice: ${VOICE})...`);
     execFileSync(
       'python3', [kokoroScript, chunkDir, audioOutDir, VOICE],
-      { stdio: 'inherit', timeout: 600000 }
+      { stdio: 'inherit', timeout: 1200000 }
     );
   } catch (err) {
     console.error('Kokoro TTS failed:', err.message);
