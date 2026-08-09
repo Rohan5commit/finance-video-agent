@@ -19,6 +19,9 @@ export default async function render() {
   }
 
   const scriptPath = path.resolve(__dirname, '../remotion/script.json');
+  if (!fs.existsSync(scriptPath)) {
+    throw new Error(`Script file not found: ${scriptPath}. Run the agent first to generate script.json.`);
+  }
   const script = JSON.parse(fs.readFileSync(scriptPath, 'utf-8'));
 
   let comp;

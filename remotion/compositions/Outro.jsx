@@ -1,4 +1,3 @@
-import React from 'react';
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
 import { Background } from '../components/Background.jsx';
 

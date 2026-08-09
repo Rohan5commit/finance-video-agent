@@ -1,10 +1,9 @@
-import React from 'react';
 import { useCurrentFrame, interpolate } from 'remotion';
 
 export const Chart = ({ data = [], startFrame = 0 }) => {
   const frame = useCurrentFrame();
   if (data.length === 0) return null;
-  const maxVal = Math.max(...data.map(d => d.value || 0), 1);
+  const maxVal = data.reduce((max, d) => Math.max(max, d.value || 0), 1);
   const barWidth = 50;
   const chartWidth = data.length * (barWidth + 20);
 

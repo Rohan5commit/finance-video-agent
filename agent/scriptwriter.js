@@ -92,14 +92,16 @@ function validateScriptSchema(script) {
   if (!script.title || typeof script.title !== 'string') {
     errors.push('Missing or invalid "title"');
   }
-  if (!script.description || typeof script.description !== 'string') {
-    errors.push('Missing or invalid "description"');
+  if (!script.description || typeof script.description !== 'string' || !script.description.trim()) {
+    errors.push('Missing or empty "description"');
   }
-  if (!Array.isArray(script.tags)) {
-    errors.push('Missing or invalid "tags" (must be array)');
+  if (!Array.isArray(script.tags) || script.tags.length === 0) {
+    errors.push('Missing or empty "tags" (must be non-empty array)');
   }
   if (!Array.isArray(script.scenes)) {
     errors.push('Missing or invalid "scenes" (must be array)');
+  } else if (script.scenes.length < 5 || script.scenes.length > 9) {
+    errors.push(`Expected 5-9 scenes, got ${script.scenes.length}`);
   } else {
     const validTypes = ['intro', 'news', 'explainer', 'market', 'outro'];
     for (const scene of script.scenes) {

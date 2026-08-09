@@ -1,11 +1,10 @@
-import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
 
 export const Background = () => {
   const frame = useCurrentFrame();
   
   // Slow sweeping gradient
-  const gradientX = interpolate(frame, [0, 600], [-200, 200], { extrapolateRight: 'clamp' });
+  const gradientX = interpolate(frame, [0, 600], [-50, 50], { extrapolateRight: 'clamp' });
 
   return (
     <AbsoluteFill style={{ background: '#0a0e1a' }}>

@@ -68,7 +68,12 @@ export async function generateAudio(script) {
     throw new Error('Kokoro TTS manifest not found — generation may have failed');
   }
 
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+  } catch {
+    throw new Error('Kokoro TTS manifest is corrupt or incomplete');
+  }
   const wavFiles = manifest.audio_files || [];
 
   if (wavFiles.length === 0) {

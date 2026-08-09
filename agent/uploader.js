@@ -1,6 +1,15 @@
 import { google } from 'googleapis';
 import fs from 'fs';
 
+function sanitizeTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  return tags
+    .filter(t => typeof t === 'string' && t.trim())
+    .map(t => t.replace(/[<>&"']/g, '').trim().slice(0, 30))
+    .filter(t => t.length > 0)
+    .slice(0, 50);
+}
+
 /**
  * Upload video to YouTube with automatic token refresh.
  * 
@@ -44,7 +53,7 @@ export async function uploadToYouTube(videoPath, title, description, tags) {
         snippet: {
           title,
           description: description?.slice(0, 5000) || '',
-          tags: tags || [],
+          tags: sanitizeTags(tags),
           categoryId: process.env.YOUTUBE_CATEGORY_ID || '27',
           defaultLanguage: 'en'
         },
