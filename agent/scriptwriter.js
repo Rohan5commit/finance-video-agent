@@ -61,6 +61,9 @@ async function callNVIDIA(messages, temperature = 0.75) {
       timeout: 300000
     }
   );
+  if (!response.data?.choices?.length) {
+    throw new Error('NVIDIA API returned empty response (no choices)');
+  }
   return response.data.choices[0].message.content;
 }
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { AbsoluteFill, Sequence, Composition, getInputProps } from 'remotion';
 import { Intro } from './compositions/Intro.jsx';
 import { NewsSection } from './compositions/NewsSection.jsx';
@@ -20,10 +19,10 @@ const FinanceVideo = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: '#0a0e1a' }}>
       {(script.scenes || []).map((scene, index) => {
-        const durationInFrames = (scene.durationSeconds || 30) * 30;
+        const durationInFrames = (scene.durationSeconds ?? 30) * 30;
         const from = script.scenes
           .slice(0, index)
-          .reduce((sum, s) => sum + (s.durationSeconds || 30) * 30, 0);
+          .reduce((sum, s) => sum + (s.durationSeconds ?? 30) * 30, 0);
         return (
           <Sequence key={scene.id} from={from} durationInFrames={durationInFrames}>
             <SceneComponent scene={scene} />
@@ -34,8 +33,8 @@ const FinanceVideo = () => {
   );
 };
 
-const TotalFrames = script
-  ? script.scenes.reduce((sum, s) => sum + (s.durationSeconds || 30) * 30, 0)
+const TotalFrames = script && script.scenes && script.scenes.length > 0
+  ? script.scenes.reduce((sum, s) => sum + (s.durationSeconds ?? 30) * 30, 0)
   : 30 * 60;
 
 export const RemotionRoot = () => (

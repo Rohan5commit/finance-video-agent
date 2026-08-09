@@ -48,7 +48,10 @@ Examples of non-finance topics: sports scores, celebrity news, weather, entertai
       }
     );
 
-    const content = response.data.choices[0].message.content;
+    const content = response.data?.choices?.[0]?.message?.content;
+    if (!content) {
+      return { isFinance: false, reason: 'Empty AI response' };
+    }
     const match = content.match(/\{[\s\S]*\}/);
     if (match) {
       return JSON.parse(match[0]);

@@ -101,7 +101,7 @@ const AssetPanel = ({ asset, index }) => {
 export const MarketSnapshot = ({ scene }) => {
   const frame = useCurrentFrame();
   const headerOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: 'clamp' });
-  const assets = scene.assets || [];
+  const assets = (scene.assets || []).slice(0, 6);
 
   return (
     <AbsoluteFill>

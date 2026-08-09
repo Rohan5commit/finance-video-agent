@@ -46,25 +46,29 @@ def main():
 
         print(f"  Generating chunk {idx + 1}/{len(text_files)} ({len(text)} chars)...")
 
-        # Generate audio segments and concatenate
-        all_audio = []
-        for gs, ps, audio in pipeline(text, voice=voice, speed=1.5):
-            all_audio.append(audio)
+        try:
+            # Generate audio segments and concatenate
+            all_audio = []
+            for gs, ps, audio in pipeline(text, voice=voice, speed=1.5):
+                all_audio.append(audio)
 
-        if not all_audio:
-            print(f"    WARNING: No audio generated for chunk {idx}")
+            if not all_audio:
+                print(f"    WARNING: No audio generated for chunk {idx}")
+                continue
+
+            # Concatenate all segments
+            full_audio = np.concatenate(all_audio)
+
+            # Save as WAV
+            wav_path = os.path.join(output_dir, f"narration_{idx}.wav")
+            sf.write(wav_path, full_audio, 24000)
+            size_kb = os.path.getsize(wav_path) / 1024
+            duration_s = len(full_audio) / 24000
+            print(f"    ✓ {wav_path} ({size_kb:.0f}KB, {duration_s:.1f}s)")
+            audio_files.append(wav_path)
+        except Exception as e:
+            print(f"    ERROR: Chunk {idx} failed: {e}")
             continue
-
-        # Concatenate all segments
-        full_audio = np.concatenate(all_audio)
-
-        # Save as WAV
-        wav_path = os.path.join(output_dir, f"narration_{idx}.wav")
-        sf.write(wav_path, full_audio, 24000)
-        size_kb = os.path.getsize(wav_path) / 1024
-        duration_s = len(full_audio) / 24000
-        print(f"    ✓ {wav_path} ({size_kb:.0f}KB, {duration_s:.1f}s)")
-        audio_files.append(wav_path)
 
     # Write manifest
     manifest = {

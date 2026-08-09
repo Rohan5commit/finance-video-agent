@@ -119,7 +119,7 @@ export const NewsSection = ({ scene }) => {
             opacity: chartOpacity,
           }}
         >
-          <Chart data={scene.chartData} startFrame={Math.max(0, frame - 60)} />
+          <Chart data={scene.chartData} startFrame={60} />
         </div>
       )}
 
