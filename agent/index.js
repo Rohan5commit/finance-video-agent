@@ -36,7 +36,7 @@ Examples of non-finance topics: sports scores, celebrity news, weather, entertai
       {
         model: process.env.NVIDIA_MODEL || 'openai/gpt-oss-20b',
         temperature: 0.1,
-        max_tokens: 100,
+        max_tokens: 500,
         messages: [{ role: 'user', content: prompt }]
       },
       {
