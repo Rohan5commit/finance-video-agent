@@ -34,7 +34,7 @@ Examples of non-finance topics: sports scores, celebrity news, weather, entertai
     const response = await axios.post(
       'https://integrate.api.nvidia.com/v1/chat/completions',
       {
-        model: process.env.NVIDIA_MODEL || 'meta/llama-3.1-8b-instruct',
+        model: process.env.NVIDIA_MODEL || 'openai/gpt-oss-20b',
         temperature: 0.1,
         max_tokens: 100,
         messages: [{ role: 'user', content: prompt }]
@@ -216,6 +216,7 @@ async function main() {
 
   // Step 9/9: Upload to YouTube
   console.log('\nStep 9/9: Uploading to YouTube...');
+  let uploadFailed = false;
   try {
     const url = await uploadToYouTube(
       path.join(OUT_DIR, 'video.mp4'),
@@ -227,6 +228,13 @@ async function main() {
   } catch (err) {
     console.error('YouTube upload failed:', err.message);
     console.log('Video saved to out/video.mp4');
+    console.error('Artifact will still be uploaded, but workflow will be marked as failed so the error is visible.');
+    uploadFailed = true;
+  }
+  if (uploadFailed) {
+    // Exit with failure after artifact upload step (which runs with if: always())
+    // This makes GitHub show red, instead of hiding the YouTube failure as green.
+    process.exitCode = 1;
   }
 }
 

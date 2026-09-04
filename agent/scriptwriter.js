@@ -48,7 +48,7 @@ async function callNVIDIA(messages, temperature = 0.75) {
   const response = await axios.post(
     'https://integrate.api.nvidia.com/v1/chat/completions',
     {
-      model: process.env.NVIDIA_MODEL || 'meta/llama-3.1-70b-instruct',
+      model: process.env.NVIDIA_MODEL || 'openai/gpt-oss-20b',
       temperature,
       max_tokens: 4000,
       messages
