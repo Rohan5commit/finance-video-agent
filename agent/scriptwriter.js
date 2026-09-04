@@ -50,7 +50,7 @@ async function callNVIDIA(messages, temperature = 0.75) {
     {
       model: process.env.NVIDIA_MODEL || 'openai/gpt-oss-20b',
       temperature,
-      max_tokens: 4000,
+      max_tokens: 8000,
       messages
     },
     {
@@ -68,6 +68,7 @@ async function callNVIDIA(messages, temperature = 0.75) {
 }
 
 function extractJSON(text) {
+  if (!text) return null;
   try { return JSON.parse(text); } catch {}
   let cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
   try { return JSON.parse(cleaned); } catch {}
@@ -78,8 +79,11 @@ function extractJSON(text) {
     try { return JSON.parse(jsonStr); } catch {}
     const fixed = jsonStr
       .replace(/,\s*([}\]])/g, '$1')
-      .replace(/"(?:[^"\\]|\\.)*"/g, (m) => m.replace(/\n/g, '\\n'));
+      .replace(/"(?:[^"\\]|\\.)*"/g, (m) => m.replace(/\n/g, '\\n').replace(/\r/g, '\\r'));
     try { return JSON.parse(fixed); } catch {}
+    const fixed2 = fixed
+      .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
+    try { return JSON.parse(fixed2); } catch {}
   }
   return null;
 }
